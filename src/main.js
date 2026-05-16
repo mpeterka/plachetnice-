@@ -40,7 +40,7 @@ try {
   scene.add(water);
 } catch (err) {
   console.warn('Water init failed, continuing without water mesh.', err);
-}
+
 try {
   createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
 } catch (err) {
