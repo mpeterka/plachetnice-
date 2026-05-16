@@ -28,10 +28,24 @@ import { BOAT, DIFFICULTY, DIFFICULTY_ORDER, PHYSICS } from './config.js';
 const canvas = document.getElementById('app');
 const renderer = createRenderer(canvas);
 const { scene, sun } = createScene();
-createSky(scene, renderer, sun);
-const water = createWater(sun);
-scene.add(water);
-createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
+try {
+  createSky(scene, renderer, sun);
+} catch (err) {
+  console.warn('Sky init failed, using scene background only.', err);
+}
+
+let water = null;
+try {
+  water = createWater(sun);
+  scene.add(water);
+} catch (err) {
+  console.warn('Water init failed, continuing without water mesh.', err);
+}
+try {
+  createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
+} catch (err) {
+  console.warn('Islands init failed, continuing without islands.', err);
+}
 
 // === State ===
 const bus = new EventBus();
@@ -60,13 +74,33 @@ if (isTouch) {
 }
 
 // === Render objekty ===
-const boatMesh = new BoatMesh();
-scene.add(boatMesh.root);
-const sailMesh = new SailMesh(boatMesh, sails);
+let boatMesh = null;
+try {
+  boatMesh = new BoatMesh();
+  scene.add(boatMesh.root);
+} catch (err) {
+  console.warn('Boat mesh init failed, continuing without boat visuals.', err);
+}
+let sailMesh = null;
+try {
+  if (boatMesh) sailMesh = new SailMesh(boatMesh, sails);
+} catch (err) {
+  console.warn('Sail mesh init failed, continuing without sail visuals.', err);
+}
 const chase = new ChaseCamera(boat, canvas);
 setupResize(renderer, chase.camera);
-const rain = new Rain(scene, chase.camera);
-const wake = new Wake(scene);
+let rain = null;
+try {
+  rain = new Rain(scene, chase.camera);
+} catch (err) {
+  console.warn('Rain init failed, continuing without rain effect.', err);
+}
+let wake = null;
+try {
+  wake = new Wake(scene);
+} catch (err) {
+  console.warn('Wake init failed, continuing without wake effect.', err);
+}
 const hud = new HUD(bus);
 
 // === Klávesy ===
@@ -135,14 +169,14 @@ const loop = new GameLoop({
     lastSailInfo = sailInfo;
   },
   render(frameDelta) {
-    if (water.material.uniforms['time']) {
+    if (water?.material?.uniforms?.time) {
       water.material.uniforms['time'].value += frameDelta;
     }
-    boatMesh.sync(boat);
-    if (lastSailInfo) sailMesh.sync(sails, lastSailInfo, frameDelta);
+    boatMesh?.sync(boat);
+    if (lastSailInfo) sailMesh?.sync(sails, lastSailInfo, frameDelta);
     chase.update(frameDelta);
-    rain.update(frameDelta, wind);
-    wake.update(frameDelta, boat);
+    rain?.update(frameDelta, wind);
+    wake?.update(frameDelta, boat);
     if (touchControls) touchControls.update();
     if (lastSailInfo) hud.update(boat, wind, sails, lastSailInfo, DIFFICULTY[currentDifficultyKey].name);
     renderer.render(scene, chase.camera);
