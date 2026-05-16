@@ -63,7 +63,7 @@ if (isTouch) {
 const boatMesh = new BoatMesh();
 scene.add(boatMesh.root);
 const sailMesh = new SailMesh(boatMesh, sails);
-const chase = new ChaseCamera(boat);
+const chase = new ChaseCamera(boat, canvas);
 setupResize(renderer, chase.camera);
 const rain = new Rain(scene, chase.camera);
 const wake = new Wake(scene);

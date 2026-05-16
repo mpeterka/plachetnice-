@@ -188,7 +188,11 @@ export class BoatMesh {
   sync(boat) {
     this.root.position.copy(boat.position);
     this.root.rotation.y = boat.heading;
-    this.heelPivot.rotation.z = boat.heel;
+    // Pozor: Three.js rotation.z kolem +Z (=forward) rotuje pravou stranu lodi NAHORU
+    // pro pozitivní úhel (right-hand rule). Naše fyzika ale dává boat.heel > 0 pro
+    // náklon na pravobok (= pravá strana DOLŮ, leeward při větru z levoboku).
+    // Proto negace, aby se vizuál shodoval s fyzikou i s HUD heel meterem.
+    this.heelPivot.rotation.z = -boat.heel;
     this.rudderPivot.rotation.y = boat.rudderAngle;
   }
 

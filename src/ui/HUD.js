@@ -73,8 +73,9 @@ export class HUD {
     el.speedBar.style.width = Math.min(100, speedKn * 8) + '%';
 
     el.windSpeed.textContent = (wind.speed * MS_TO_KN).toFixed(0);
-    // wind.dir = úhel "odkud vítr fouká"; compassName očekává úhel "kam" → +π převrátí.
-    el.windDir.textContent = compassName(wind.dir + Math.PI);
+    // wind.dir = úhel ODKUD vítr fouká; compassName interpretuje argument jako úhel
+    // toho směru (heading 0 = S). „z X" tedy bere wind.dir přímo, bez offsetu.
+    el.windDir.textContent = compassName(wind.dir);
     el.difficulty.textContent = difficultyName;
 
     const apparentFrom = Math.atan2(-sailInfo.apparent.x, -sailInfo.apparent.z);
