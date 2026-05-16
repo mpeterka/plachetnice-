@@ -70,7 +70,7 @@ const chase = new ChaseCamera(boat);
 setupResize(renderer, chase.camera);
 
 // Déšť kolem kamery — šrafa kapek ukazuje směr větru.
-const rain = new Rain(scene, chase.camera, { count: 350 });
+const rain = new Rain(scene, chase.camera, { count: 900 });
 
 // Stopa ve vodě a vlna od přídě — indikují rychlost lodi.
 const wake = new Wake(scene, { max: 600 });

@@ -5,24 +5,25 @@ import * as THREE from 'three';
 // → úhel a směr přímo odhalují směr a sílu větru.
 export class Rain {
   constructor(scene, camera, opts = {}) {
-    this.count = opts.count ?? 350;
-    this.radius = opts.radius ?? 60;     // okolo kamery, kde drops spawnují
-    this.ceiling = opts.ceiling ?? 32;   // strop spawnování
-    this.tailLen = opts.tailLen ?? 1.0;
-    this.dragFactor = opts.dragFactor ?? 0.65; // jak silně vítr unáší kapku
+    this.count = opts.count ?? 900;
+    this.radius = opts.radius ?? 55;     // hustější spawn okolo kamery
+    this.ceiling = opts.ceiling ?? 35;   // strop spawnování
+    this.tailLen = opts.tailLen ?? 1.6;  // delší šrafa
+    this.dragFactor = opts.dragFactor ?? 0.7; // víc unášené větrem
     this.camera = camera;
 
     this.positions = new Float32Array(this.count * 6); // 2 endpointy × 3 floats
     this.fallSpeeds = new Float32Array(this.count);
+    this.tailScales = new Float32Array(this.count);    // variace délky kapek
 
     for (let i = 0; i < this.count; i++) this._spawn(i, true);
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
     const mat = new THREE.LineBasicMaterial({
-      color: 0xc0d8ec,
+      color: 0xe0eef8,                 // jasnější (skoro bílá s lehkým modrým nádechem)
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.8,
       depthWrite: false,
     });
     this.mesh = new THREE.LineSegments(geo, mat);
@@ -46,7 +47,9 @@ export class Rain {
     this.positions[i6 + 3] = x;
     this.positions[i6 + 4] = y + this.tailLen;
     this.positions[i6 + 5] = z;
-    this.fallSpeeds[i] = 7 + Math.random() * 5;
+    this.fallSpeeds[i] = 8 + Math.random() * 6;
+    // Variace délky kapek (0.6× až 1.4× této tailLen)
+    this.tailScales[i] = 0.6 + Math.random() * 0.8;
   }
 
   update(dt, wind) {
@@ -66,7 +69,7 @@ export class Rain {
       // Tail = ten konec úsečky proti směru pohybu → ukazuje odkud kapka přišla.
       const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
       if (speed > 0.001) {
-        const inv = tail / speed;
+        const inv = (tail * this.tailScales[i]) / speed;
         this.positions[i6 + 3] = this.positions[i6 + 0] - vx * inv;
         this.positions[i6 + 4] = this.positions[i6 + 1] - vy * inv;
         this.positions[i6 + 5] = this.positions[i6 + 2] - vz * inv;

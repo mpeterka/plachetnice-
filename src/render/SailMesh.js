@@ -13,13 +13,16 @@ export class SailMesh {
     this.mainHeight = 7.0;
     this.boomLength = 3.6;
     this.mainGeo = this._makeTriGeo(this.mainHeight, this.boomLength, 10, 6);
-    const sailMat = new THREE.MeshStandardMaterial({
+    // Hlavní: čistá bílá s červeným horizontálním pruhem (vertex colors) → vizuální identita
+    this._addStripe(this.mainGeo, this.mainHeight, 0.55, 0.62, [0.85, 0.18, 0.18]);
+    const mainMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       side: THREE.DoubleSide,
       roughness: 0.85,
       metalness: 0.0,
+      vertexColors: true,
     });
-    this.mainMesh = new THREE.Mesh(this.mainGeo, sailMat);
+    this.mainMesh = new THREE.Mesh(this.mainGeo, mainMat);
     // Připevníme k boomPivotu, tak že luff (přední lík) je u stěžně (z=0 v rámu boom pivot)
     // Geo: vertex 0 = boom-mast roh, šíří se po boomu (-Z) a po stěžni (+Y).
     this.anchors.boomPivot.add(this.mainMesh);
@@ -28,7 +31,14 @@ export class SailMesh {
     this.jibHeight = 6.0;
     this.jibBase = 3.0;
     this.jibGeo = this._makeJibGeo(this.jibHeight, this.jibBase, 8, 6);
-    this.jibMesh = new THREE.Mesh(this.jibGeo, sailMat);
+    // Kosatka: krémová (béžová) — barevně jasně odlišená od hlavní
+    const jibMat = new THREE.MeshStandardMaterial({
+      color: 0xf5dc9a,
+      side: THREE.DoubleSide,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+    this.jibMesh = new THREE.Mesh(this.jibGeo, jibMat);
     // Kosatka visí mezi forestay (bowstayBase nahoru) a tackem na palubě
     this.jibPivot = new THREE.Group();
     this.jibPivot.position.set(0, this.anchors.deckTop, 3.6); // tack
@@ -38,6 +48,27 @@ export class SailMesh {
     this._time = 0;
     this._mainOrigPositions = this.mainGeo.attributes.position.array.slice();
     this._jibOrigPositions = this.jibGeo.attributes.position.array.slice();
+  }
+
+  // Přidá vertex-color atribut: vertexy v pásu [vMin..vMax] dostanou stripeColor,
+  // ostatní zůstanou bílé. Materiál musí mít vertexColors:true.
+  _addStripe(geo, height, vMin, vMax, stripeColor) {
+    const pos = geo.attributes.position.array;
+    const n = pos.length / 3;
+    const colors = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const y = pos[i * 3 + 1];
+      const v = y / height;
+      const inStripe = v >= vMin && v <= vMax;
+      if (inStripe) {
+        colors[i * 3 + 0] = stripeColor[0];
+        colors[i * 3 + 1] = stripeColor[1];
+        colors[i * 3 + 2] = stripeColor[2];
+      } else {
+        colors[i * 3 + 0] = 1; colors[i * 3 + 1] = 1; colors[i * 3 + 2] = 1;
+      }
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   }
 
   // Trojúhelníková hlavní plachta: vrcholy (0,0,0), (0,height,0), (0,0,-boom).
