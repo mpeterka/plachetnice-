@@ -31,7 +31,7 @@ export class SailMesh {
     this.jibMesh = new THREE.Mesh(this.jibGeo, sailMat);
     // Kosatka visí mezi forestay (bowstayBase nahoru) a tackem na palubě
     this.jibPivot = new THREE.Group();
-    this.jibPivot.position.set(0, 0.85, 3.6); // tack
+    this.jibPivot.position.set(0, this.anchors.deckTop, 3.6); // tack
     this.jibPivot.add(this.jibMesh);
     this.anchors.heelPivot.add(this.jibPivot);
 

@@ -35,19 +35,20 @@ export class BoatMesh {
     hull.position.y = 0.3;
     this.heelPivot.add(hull);
 
-    // Paluba
+    // Paluba — sedí těsně NAD trupem (bottom 0.9 = top trupu), žádné z-fighting.
+    const DECK_TOP = 1.0;
     const deckGeo = new THREE.BoxGeometry(2.2, 0.1, 7.5);
     const deck = new THREE.Mesh(deckGeo, new THREE.MeshStandardMaterial({ color: deckColor, roughness: 0.85 }));
-    deck.position.y = 0.85;
+    deck.position.y = 0.95;
     this.heelPivot.add(deck);
 
-    // Kokpit (zápustek)
-    const cockpitGeo = new THREE.BoxGeometry(1.4, 0.5, 2);
+    // Kabinka / companionway sedí NA palubě (žádný průnik)
+    const cockpitGeo = new THREE.BoxGeometry(1.4, 0.3, 2);
     const cockpit = new THREE.Mesh(cockpitGeo, new THREE.MeshStandardMaterial({ color: trimColor, roughness: 0.9 }));
-    cockpit.position.set(0, 0.7, -1.5);
+    cockpit.position.set(0, DECK_TOP + 0.15, -1.5);
     this.heelPivot.add(cockpit);
 
-    // Stěžeň
+    // Stěžeň — projde palubou až ke kýlu (realistické)
     const mastGeo = new THREE.CylinderGeometry(0.08, 0.08, 9, 12);
     const mast = new THREE.Mesh(mastGeo, new THREE.MeshStandardMaterial({ color: 0xc8c8c8, metalness: 0.7, roughness: 0.3 }));
     mast.position.set(0, 0.85 + 4.5, 0.5);
@@ -63,10 +64,10 @@ export class BoatMesh {
     this.boomPivot.add(boom);
     this.heelPivot.add(this.boomPivot);
 
-    // Forestay – přední lano pro kosatku
+    // Forestay – přední lano pro kosatku (kotvené na palubě, ne pod ní)
     const forestayGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0.85 + 9, 0.5),
-      new THREE.Vector3(0, 0.85, 3.8),
+      new THREE.Vector3(0, DECK_TOP, 3.8),
     ]);
     const stay = new THREE.Line(forestayGeo, new THREE.LineBasicMaterial({ color: 0x999999 }));
     this.heelPivot.add(stay);
@@ -95,7 +96,8 @@ export class BoatMesh {
       boomPivot: this.boomPivot,
       mastTop: new THREE.Vector3(0, 0.85 + 9, 0.5),
       mastBase: new THREE.Vector3(0, 1.9, 0.5),
-      bowstayBase: new THREE.Vector3(0, 0.85, 3.8),
+      bowstayBase: new THREE.Vector3(0, 1.0, 3.8),
+      deckTop: 1.0,
       heelPivot: this.heelPivot,
     };
   }
