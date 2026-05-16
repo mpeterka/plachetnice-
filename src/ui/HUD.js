@@ -1,21 +1,47 @@
 import { Compass } from './Compass.js';
 import { MS_TO_KN, pointOfSail, compassName } from '../config.js';
 
+// Všechny DOM uzly se cachují v konstruktoru — querySelector v 60Hz loopu je drahý
+// na mobilech. update() pak jen mutuje vlastnosti.
 export class HUD {
   constructor(bus) {
     this.bus = bus;
     this.compass = new Compass(document.getElementById('compass'));
     this.warnings = document.getElementById('warnings');
-    this.activeWarnings = new Map(); // code -> {el, expiresAt}
     this.debugEl = document.getElementById('debug-hud');
+    this.activeWarnings = new Map();
     this.debugVisible = false;
 
-    // bus warning handler
+    // Cache všech DOM elementů.
+    this.el = {
+      speedValue: document.getElementById('speed-value'),
+      speedBar: document.querySelector('#speed-bar > div'),
+      windSpeed: document.getElementById('wind-speed'),
+      windDir: document.getElementById('wind-dir'),
+      difficulty: document.getElementById('difficulty-label'),
+      course: document.getElementById('course-label'),
+      mainSheetFill: document.getElementById('main-sheet-fill'),
+      mainSheetValue: document.getElementById('main-sheet-value'),
+      mainReef: document.getElementById('main-reef-value'),
+      mainHoist: document.getElementById('main-hoist-value'),
+      jibSheetFill: document.getElementById('jib-sheet-fill'),
+      jibSheetValue: document.getElementById('jib-sheet-value'),
+      jibFurl: document.getElementById('jib-furl-value'),
+      jibHoist: document.getElementById('jib-hoist-value'),
+      topping: document.getElementById('topping-lift-value'),
+      rudderNeedle: document.getElementById('rudder-needle'),
+      heelValue: document.getElementById('heel-value'),
+      heelFill: document.getElementById('heel-fill'),
+    };
+
     bus.on('warning', (w) => this.showWarning(w.code, w.msg, 3));
     bus.on('gust', (g) => this.showWarning('gust', `⚠ Náraz větru +${g.peak.toFixed(1)} m/s!`, 2));
   }
 
-  toggleDebug() { this.debugVisible = !this.debugVisible; this.debugEl.classList.toggle('hidden', !this.debugVisible); }
+  toggleDebug() {
+    this.debugVisible = !this.debugVisible;
+    this.debugEl.classList.toggle('hidden', !this.debugVisible);
+  }
 
   showWarning(code, msg, durationSec) {
     let entry = this.activeWarnings.get(code);
@@ -41,65 +67,55 @@ export class HUD {
   }
 
   update(boat, wind, sails, sailInfo, difficultyName) {
+    const el = this.el;
     const speedKn = boat.velocity.length() * MS_TO_KN;
-    document.getElementById('speed-value').textContent = speedKn.toFixed(1);
-    const bar = document.querySelector('#speed-bar > div');
-    if (bar) bar.style.width = Math.min(100, speedKn * 8) + '%';
+    el.speedValue.textContent = speedKn.toFixed(1);
+    el.speedBar.style.width = Math.min(100, speedKn * 8) + '%';
 
-    // Vítr
-    document.getElementById('wind-speed').textContent = (wind.speed * MS_TO_KN).toFixed(0);
-    document.getElementById('wind-dir').textContent = compassName(wind.dir + Math.PI); // dir = "kam" → "odkud" = dir+π
-    document.getElementById('difficulty-label').textContent = difficultyName;
+    el.windSpeed.textContent = (wind.speed * MS_TO_KN).toFixed(0);
+    // wind.dir = úhel "odkud vítr fouká"; compassName očekává úhel "kam" → +π převrátí.
+    el.windDir.textContent = compassName(wind.dir + Math.PI);
+    el.difficulty.textContent = difficultyName;
 
-    // Kompas – wind.dir = úhel "odkud vítr fouká"? V Wind.js to byl úhel z presetu (270° = ze západu).
-    // apparent vector "kam fouká"; odkud = -apparent
     const apparentFrom = Math.atan2(-sailInfo.apparent.x, -sailInfo.apparent.z);
     this.compass.update(boat.heading, wind.dir, apparentFrom);
 
-    // Bod kursu
     const absAwaDeg = Math.abs(sailInfo.awa) * 180 / Math.PI;
     const course = pointOfSail(absAwaDeg);
-    const courseEl = document.getElementById('course-label');
-    courseEl.textContent = course;
-    courseEl.classList.toggle('no-go', course === 'NO-GO!');
+    el.course.textContent = course;
+    el.course.classList.toggle('no-go', course === 'NO-GO!');
 
-    // Plachty – slidery
-    document.getElementById('main-sheet-fill').style.width = Math.round(sails.main.sheetIn * 100) + '%';
-    document.getElementById('main-sheet-value').textContent = Math.round(sails.main.sheetIn * 100);
-    document.getElementById('main-reef-value').textContent = sails.main.reefStep;
-    document.getElementById('main-hoist-value').textContent = sails.main.hoisted ? '▲ nahoře' : '▽ dole';
+    el.mainSheetFill.style.width = Math.round(sails.main.sheetIn * 100) + '%';
+    el.mainSheetValue.textContent = Math.round(sails.main.sheetIn * 100);
+    el.mainReef.textContent = sails.main.reefStep;
+    el.mainHoist.textContent = sails.main.hoisted ? '▲ nahoře' : '▽ dole';
 
-    document.getElementById('jib-sheet-fill').style.width = Math.round(sails.jib.sheetIn * 100) + '%';
-    document.getElementById('jib-sheet-value').textContent = Math.round(sails.jib.sheetIn * 100);
-    document.getElementById('jib-furl-value').textContent = Math.round(sails.jib.reefFraction * 100);
-    document.getElementById('jib-hoist-value').textContent = sails.jib.hoisted ? '▲ nahoře' : '▽ dole';
+    el.jibSheetFill.style.width = Math.round(sails.jib.sheetIn * 100) + '%';
+    el.jibSheetValue.textContent = Math.round(sails.jib.sheetIn * 100);
+    el.jibFurl.textContent = Math.round(sails.jib.reefFraction * 100);
+    el.jibHoist.textContent = sails.jib.hoisted ? '▲ nahoře' : '▽ dole';
 
-    document.getElementById('topping-lift-value').textContent = sails.toppingLift ? 'napnut' : 'uvolněn';
+    el.topping.textContent = sails.toppingLift ? 'napnut' : 'uvolněn';
 
-    // Kormidlo (rudderAngle ∈ ±π/4) → slider -100..+100 %
-    const rNorm = (boat.rudderAngle / (Math.PI / 4));
-    const needle = document.getElementById('rudder-needle');
-    needle.style.left = (50 + rNorm * 50) + '%';
+    const rNorm = boat.rudderAngle / (Math.PI / 4);
+    el.rudderNeedle.style.left = (50 + rNorm * 50) + '%';
 
-    // Heel
     const heelDeg = boat.heel * 180 / Math.PI;
-    document.getElementById('heel-value').textContent = heelDeg.toFixed(0);
-    const fill = document.getElementById('heel-fill');
-    const magPct = Math.min(50, Math.abs(heelDeg)); // ±50° = full
+    el.heelValue.textContent = heelDeg.toFixed(0);
+    const magPct = Math.min(50, Math.abs(heelDeg));
     if (heelDeg >= 0) {
-      fill.style.bottom = '50%';
-      fill.style.top = 'auto';
-      fill.style.height = (magPct) + '%';
+      el.heelFill.style.bottom = '50%';
+      el.heelFill.style.top = 'auto';
     } else {
-      fill.style.top = '50%';
-      fill.style.bottom = 'auto';
-      fill.style.height = (magPct) + '%';
+      el.heelFill.style.top = '50%';
+      el.heelFill.style.bottom = 'auto';
     }
+    el.heelFill.style.height = magPct + '%';
 
-    // Varování: luffing pokud obě plachty luffují (a jsou nahoře) — ale jen mimo no-go
-    const bothLuffing = sailInfo.mainInfo.luffing && sailInfo.jibInfo.luffing
-      && (sails.main.hoisted || sails.jib.hoisted);
-    if (bothLuffing && course !== 'NO-GO!') {
+    // Varování: obě plachty luffují mimo no-go zónu (= špatný trim, ne irons)
+    if (sailInfo.mainInfo.luffing && sailInfo.jibInfo.luffing
+        && (sails.main.hoisted || sails.jib.hoisted)
+        && course !== 'NO-GO!') {
       this.showWarning('luff', '⚠ Plachta luffuje — uprav otěž', 1.5);
     }
     if (Math.abs(heelDeg) > 45) {
@@ -113,9 +129,9 @@ export class HUD {
         `AWA:  ${(sailInfo.awa * 180 / Math.PI).toFixed(1)}°`,
         `AWS:  ${sailInfo.aws.toFixed(2)} m/s`,
         `|v|:  ${boat.velocity.length().toFixed(2)} m/s`,
-        `F_fwd:${sailInfo.F_forward.toFixed(0)} N`,
+        `F_fwd: ${sailInfo.F_forward.toFixed(0)} N`,
         `F_side:${sailInfo.F_side.toFixed(0)} N`,
-        `heel: ${heelDeg.toFixed(1)}°`,
+        `heel:  ${heelDeg.toFixed(1)}°`,
         `main α:${(sailInfo.mainInfo.alpha * 180 / Math.PI).toFixed(1)}° CL:${sailInfo.mainInfo.CL.toFixed(2)} CD:${sailInfo.mainInfo.CD.toFixed(2)}`,
         `jib  α:${(sailInfo.jibInfo.alpha * 180 / Math.PI).toFixed(1)}° CL:${sailInfo.jibInfo.CL.toFixed(2)} CD:${sailInfo.jibInfo.CD.toFixed(2)}`,
       ].join('\n');

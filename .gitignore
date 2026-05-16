@@ -1,5 +1,28 @@
+# Node / build
 node_modules
 dist
-.DS_Store
-*.log
 .vite
+.cache
+coverage
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor / IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*

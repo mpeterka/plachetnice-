@@ -36,8 +36,7 @@ export class GameLoop {
         this.accumulator -= this.dt;
       }
     }
-    const alpha = this.accumulator / this.dt;
-    this.render(frameDelta, alpha);
+    this.render(frameDelta);
     requestAnimationFrame(this._tick);
   }
 }

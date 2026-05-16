@@ -62,31 +62,26 @@ export class Rain {
   }
 
   update(dt, wind) {
-    const wx = wind.vector.x;
-    const wz = wind.vector.z;
-    const drag = this.dragFactor;
+    // Per-frame konstanty mimo loop. Horizontal velocity je stejná pro všechny kapky,
+    // jen vertikální pád se liší per-particle.
+    const vx = wind.vector.x * this.dragFactor;
+    const vz = wind.vector.z * this.dragFactor;
+    const dxStep = vx * dt;
+    const dzStep = vz * dt;
+    const hsqXZ = vx * vx + vz * vz;
     const tail = this.tailLen;
     for (let i = 0; i < this.count; i++) {
       const i6 = i * 6;
       const fall = this.fallSpeeds[i];
-      const vx = wx * drag;
-      const vy = -fall;
-      const vz = wz * drag;
-      this.positions[i6 + 0] += vx * dt;
-      this.positions[i6 + 1] += vy * dt;
-      this.positions[i6 + 2] += vz * dt;
-      // Tail = ten konec úsečky proti směru pohybu → ukazuje odkud kapka přišla.
-      const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-      if (speed > 0.001) {
-        const inv = (tail * this.tailScales[i]) / speed;
-        this.positions[i6 + 3] = this.positions[i6 + 0] - vx * inv;
-        this.positions[i6 + 4] = this.positions[i6 + 1] - vy * inv;
-        this.positions[i6 + 5] = this.positions[i6 + 2] - vz * inv;
-      }
-      // Respawn při dopadu na hladinu nebo při velkém drift mimo radius
-      if (this.positions[i6 + 1] < 0.15) {
-        this._spawn(i, false);
-      }
+      this.positions[i6 + 0] += dxStep;
+      this.positions[i6 + 1] -= fall * dt;
+      this.positions[i6 + 2] += dzStep;
+      // Tail = vrchol úsečky proti směru pohybu → komet efekt
+      const inv = (tail * this.tailScales[i]) / Math.sqrt(hsqXZ + fall * fall);
+      this.positions[i6 + 3] = this.positions[i6 + 0] - vx * inv;
+      this.positions[i6 + 4] = this.positions[i6 + 1] + fall * inv;
+      this.positions[i6 + 5] = this.positions[i6 + 2] - vz * inv;
+      if (this.positions[i6 + 1] < 0.15) this._spawn(i, false);
     }
     this.mesh.geometry.attributes.position.needsUpdate = true;
   }

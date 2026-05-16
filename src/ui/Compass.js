@@ -27,10 +27,10 @@ export class Compass {
     // Tick marks + světové strany
     const cardinals = [['S', 0], ['V', 90], ['J', 180], ['Z', 270]];
     cardinals.forEach(([t, deg]) => {
-      const rad = (deg - 90) * Math.PI / 180; // SVG: 0deg = +X, ale chceme S nahoře
-      // S nahoře (deg=0): -90° → (cos -90, sin -90) = (0,-1) tj. nahoře
-      const cx = Math.cos((deg - 90) * Math.PI / 180);
-      const cy = Math.sin((deg - 90) * Math.PI / 180);
+      // Offset -90° posouvá výchozí směr SVG (+X) tak, že deg=0 ukazuje nahoru = N.
+      const rad = (deg - 90) * Math.PI / 180;
+      const cx = Math.cos(rad);
+      const cy = Math.sin(rad);
       const tx = cx * 80;
       const ty = cy * 80;
       const tn = document.createElementNS(SVG_NS, 'text');

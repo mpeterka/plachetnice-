@@ -24,35 +24,31 @@ import { SailMesh } from './render/SailMesh.js';
 import { HUD } from './ui/HUD.js';
 import { BOAT, DIFFICULTY, DIFFICULTY_ORDER, PHYSICS } from './config.js';
 
+// === Scene & world ===
 const canvas = document.getElementById('app');
 const renderer = createRenderer(canvas);
 const { scene, sun } = createScene();
-const { sky, sunPosition } = createSky(scene, renderer, sun);
+createSky(scene, renderer, sun);
 const water = createWater(sun);
 scene.add(water);
-
-// Ostrovy — náhodně rozházené kolem hráče, jen dekorativní (žádný vliv na fyziku ani vítr).
 createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
 
+// === State ===
 const bus = new EventBus();
 const boat = new Boat();
-boat.position.set(0, 0, 0);
-boat.heading = 0; // míří k severu (+Z); vítr fouká ze západu → beam reach
 const sails = new Sails();
-
 let currentDifficultyKey = 'mirny';
 const wind = new Wind(DIFFICULTY[currentDifficultyKey], bus);
 
+// === Input ===
 const keyboard = new Keyboard();
 const controls = new Controls(keyboard, sails, boat, bus);
 
-// Detekce dotykového zařízení → aktivuje touch overlay
 const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 let touchControls = null;
 if (isTouch) {
   document.body.classList.add('touch');
   touchControls = new TouchControls(document.getElementById('touch-controls'), sails, boat, bus);
-  // Tlačítko obtížnosti cyklí mezi 4 presety
   const diffBtn = document.getElementById('btn-diff');
   diffBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
@@ -63,21 +59,17 @@ if (isTouch) {
   });
 }
 
+// === Render objekty ===
 const boatMesh = new BoatMesh();
 scene.add(boatMesh.root);
 const sailMesh = new SailMesh(boatMesh, sails);
 const chase = new ChaseCamera(boat);
 setupResize(renderer, chase.camera);
-
-// Déšť kolem kamery — šrafa kapek ukazuje směr větru.
-const rain = new Rain(scene, chase.camera, { count: 900 });
-
-// Stopa ve vodě a vlna od přídě — indikují rychlost lodi.
-const wake = new Wake(scene, { max: 600 });
-
+const rain = new Rain(scene, chase.camera);
+const wake = new Wake(scene);
 const hud = new HUD(bus);
 
-// Klávesy: obtížnost, pauza, debug
+// === Klávesy ===
 keyboard.onPress('1', () => switchDifficulty('klid'));
 keyboard.onPress('2', () => switchDifficulty('mirny'));
 keyboard.onPress('3', () => switchDifficulty('cerstvy'));
@@ -92,8 +84,7 @@ function switchDifficulty(key) {
   bus.emit('warning', { code: 'difficulty', msg: `Obtížnost: ${DIFFICULTY[key].name}` });
 }
 
-// Fullscreen tlačítko (Android: nativní, iOS Safari: Fullscreen API není
-// pro DOM elementy — uživatel může "Add to Home Screen" pro PWA režim).
+// === Fullscreen (Android funkční, iOS Safari → PWA režim přes Add to Home Screen) ===
 document.getElementById('btn-fullscreen').addEventListener('click', () => {
   const el = document.documentElement;
   if (document.fullscreenElement) {
@@ -105,31 +96,30 @@ document.getElementById('btn-fullscreen').addEventListener('click', () => {
   }
 });
 
-// Reakce na náraz větru: vibrace (Android — iOS Safari ignoruje) + otřes kamery.
+// === Reakce na gust: vibrace (Android) + camera shake (cross-platform) ===
 bus.on('gust', ({ peak }) => {
-  // Vibration API: pattern [vib, pauza, vib] v ms. Délka & intenzita škálovaná peakem.
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
     const dur = Math.min(220, 60 + peak * 18);
-    try { navigator.vibrate([Math.round(dur), 40, Math.round(dur * 0.5)]); } catch {}
+    try { navigator.vibrate([Math.round(dur), 40, Math.round(dur * 0.5)]); } catch { /* no-op on iOS */ }
   }
-  // Otřes kamery: vizuální nahrazka haptiky pro iOS / desktop.
   chase.shake(Math.min(0.6, 0.06 * peak));
 });
 
-// Pomocné: spočítat výšku CE jako vážený průměr (hlavní vs kosatka)
+// === Pomocné fyziky ===
+// Vážená výška středu plachet (CE) — ovlivňuje heeling moment.
 function effectiveCE() {
   const aM = sails.effectiveArea(sails.main);
   const aJ = sails.effectiveArea(sails.jib);
   const total = aM + aJ;
   if (total < 0.01) return 1;
-  // při refu klesá také CE proporcionálně
   const hM = BOAT.hCE_main * (1 - sails.main.reefFraction * 0.5);
   const hJ = BOAT.hCE_jib * (1 - sails.jib.reefFraction * 0.3);
   return (aM * hM + aJ * hJ) / total;
 }
 
-// Sdílíme si poslední sailForceInfo mezi physics a render krokem
+// === Game loop ===
 let lastSailInfo = null;
+const totalForce = new THREE.Vector3(); // pre-alloc — sčítáme každý step
 
 const loop = new GameLoop({
   dt: PHYSICS.DT,
@@ -138,16 +128,13 @@ const loop = new GameLoop({
     wind.update(dt, t);
     const sailInfo = computeSailForces(boat, sails, wind.vector);
     const hull = computeHullDrag(boat);
-    const F = new THREE.Vector3().add(sailInfo.F).add(hull);
-    stepLinear(boat, F, dt);
+    totalForce.copy(sailInfo.F).add(hull);
+    stepLinear(boat, totalForce, dt);
     stepYaw(boat, dt);
     stepHeel(boat, sailInfo.F_side, effectiveCE(), dt);
-    boat.lastForward = sailInfo.F_forward;
-    boat.lastSide = sailInfo.F_side;
     lastSailInfo = sailInfo;
   },
-  render(frameDelta, alpha) {
-    // Voda – animace času
+  render(frameDelta) {
     if (water.material.uniforms['time']) {
       water.material.uniforms['time'].value += frameDelta;
     }
@@ -156,7 +143,7 @@ const loop = new GameLoop({
     chase.update(frameDelta);
     rain.update(frameDelta, wind);
     wake.update(frameDelta, boat);
-    if (touchControls) touchControls.update(frameDelta);
+    if (touchControls) touchControls.update();
     if (lastSailInfo) hud.update(boat, wind, sails, lastSailInfo, DIFFICULTY[currentDifficultyKey].name);
     renderer.render(scene, chase.camera);
   },

@@ -89,10 +89,15 @@ export class Wake {
 
     this._sternSpawnAcc = 0;
     this._bowSpawnAcc = 0;
+    this._next = 0;
+    // Pre-alokované vektory — Wake.update() jinak alokoval ~3× per frame.
+    this._sternPos = new THREE.Vector3();
+    this._bowPos = new THREE.Vector3();
+    this._motionDir = new THREE.Vector3();
   }
 
   _spawn(x, z, vx, vz, lifetime, size) {
-    const i = (this._next = (this._next ?? 0));
+    const i = this._next;
     this._next = (i + 1) % this.max;
     this.positions[i * 3 + 0] = x;
     this.positions[i * 3 + 1] = 0.08;
@@ -111,16 +116,14 @@ export class Wake {
     const side = boat.side();
 
     // === Stěr za zádí: hodně malých bublinek + občas velká ===
-    const sternRate = speed * 18; // vyšší rate pro hustou pěnu
+    const sternRate = speed * 18;
     this._sternSpawnAcc += sternRate * dt;
-    const sternPos = new THREE.Vector3()
-      .copy(boat.position)
-      .addScaledVector(fwd, -4.0);
+    this._sternPos.copy(boat.position).addScaledVector(fwd, -4.0);
     while (this._sternSpawnAcc >= 1) {
       this._sternSpawnAcc -= 1;
       const offset = (Math.random() - 0.5) * 2.0;
-      const px = sternPos.x + side.x * offset + (Math.random() - 0.5) * 0.4;
-      const pz = sternPos.z + side.z * offset + (Math.random() - 0.5) * 0.4;
+      const px = this._sternPos.x + side.x * offset + (Math.random() - 0.5) * 0.4;
+      const pz = this._sternPos.z + side.z * offset + (Math.random() - 0.5) * 0.4;
       const vx = side.x * offset * 0.5 - fwd.x * (0.3 + Math.random() * 0.4);
       const vz = side.z * offset * 0.5 - fwd.z * (0.3 + Math.random() * 0.4);
       // Občasná velká bublina (15%), zbytek malé
@@ -136,52 +139,49 @@ export class Wake {
     if (speed > 1.2) {
       const bowRate = speed * 14;
       this._bowSpawnAcc += bowRate * dt;
-      const bowPos = new THREE.Vector3()
-        .copy(boat.position)
-        .addScaledVector(fwd, 4.0);
-      // Skutečný směr pohybu (normalizovaný) — kolem něj rozevíráme V.
-      const motionDir = boat.velocity.clone();
-      motionDir.y = 0;
-      motionDir.normalize();
-      // Perpendikulár v rovině XZ
-      const perpDir = new THREE.Vector3(-motionDir.z, 0, motionDir.x);
-      const kSin = Math.sin(0.34);
+      this._bowPos.copy(boat.position).addScaledVector(fwd, 4.0);
+      // Skutečný směr pohybu — V se rozevírá symetricky kolem velocity (ne kolem heading),
+      // jinak by drift posunul celé V na závětrnou stranu.
+      this._motionDir.copy(boat.velocity);
+      this._motionDir.y = 0;
+      this._motionDir.normalize();
+      const mx = this._motionDir.x, mz = this._motionDir.z;
+      // Perpendikulár v rovině XZ (rotace o 90°)
+      const px_perp = -mz, pz_perp = mx;
+      const kSin = Math.sin(0.34); // Kelvin angle ~19.5°
       const kCos = Math.cos(0.34);
       const wakeSpeed = speed * 0.75;
       while (this._bowSpawnAcc >= 1) {
         this._bowSpawnAcc -= 1;
         const sideSign = Math.random() < 0.5 ? -1 : 1;
-        // V-pattern symetrické kolem motionDir (ne fwd)
-        const vx = motionDir.x * wakeSpeed * kCos + perpDir.x * sideSign * wakeSpeed * kSin;
-        const vz = motionDir.z * wakeSpeed * kCos + perpDir.z * sideSign * wakeSpeed * kSin;
+        const vx = mx * wakeSpeed * kCos + px_perp * sideSign * wakeSpeed * kSin;
+        const vz = mz * wakeSpeed * kCos + pz_perp * sideSign * wakeSpeed * kSin;
         const startOff = sideSign * (0.1 + Math.random() * 0.3);
-        const px = bowPos.x + side.x * startOff;
-        const pz = bowPos.z + side.z * startOff;
+        const px = this._bowPos.x + side.x * startOff;
+        const pz = this._bowPos.z + side.z * startOff;
         const size = 0.8 + Math.random() * 1.2;
         this._spawn(px, pz, vx * 0.6, vz * 0.6, 2.8, size);
       }
     }
 
-    // === Update particles: expanze + alpha fade + drift ===
+    // Per-frame konstanty mimo per-particle loop.
+    const damping = Math.exp(-0.8 * dt);
+    const growth = 1 + 0.4 * dt;
     for (let i = 0; i < this.max; i++) {
       const life = this.lifetimes[i];
       if (this.ages[i] >= life) continue;
       this.ages[i] += dt;
-      this.positions[i * 3 + 0] += this.velocities[i * 3 + 0] * dt;
-      this.positions[i * 3 + 2] += this.velocities[i * 3 + 2] * dt;
-      // Lehké bublání v Y
-      this.positions[i * 3 + 1] = 0.05 + Math.sin(this.ages[i] * 4 + i * 0.7) * 0.05;
-      // Tlumení rychlosti — voda bublinu zpomalí
-      const damping = Math.exp(-0.8 * dt);
-      this.velocities[i * 3 + 0] *= damping;
-      this.velocities[i * 3 + 2] *= damping;
-      // Bublina rovnoměrně narůstá
-      this.sizes[i] *= (1 + 0.4 * dt);
-      // Quadratic fade: pomalu na startu, rychle ke konci
+      const i3 = i * 3;
+      this.positions[i3 + 0] += this.velocities[i3 + 0] * dt;
+      this.positions[i3 + 2] += this.velocities[i3 + 2] * dt;
+      this.positions[i3 + 1] = 0.05 + Math.sin(this.ages[i] * 4 + i * 0.7) * 0.05;
+      this.velocities[i3 + 0] *= damping;
+      this.velocities[i3 + 2] *= damping;
+      this.sizes[i] *= growth;
       const t = this.ages[i] / life;
       this.alphas[i] = (1 - t * t) * 0.9;
       if (this.ages[i] >= life) {
-        this.positions[i * 3 + 1] = -1000;
+        this.positions[i3 + 1] = -1000;
         this.alphas[i] = 0;
       }
     }

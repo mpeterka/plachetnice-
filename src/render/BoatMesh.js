@@ -181,10 +181,8 @@ export class BoatMesh {
     this.rudderPivot.add(rudder);
     this.heelPivot.add(this.rudderPivot);
 
-    // Uložené hodnoty pro getRiggingAnchors
-    this._mastTopY = mastTopY;
-    this._bowStayY = DECK_AT_BOW_STAY;
-    this._boomY = DECK_AT_MID + 1.0;
+    // Uložené hodnoty pro getRiggingAnchors (deckTop pro jib tack)
+    this._deckTop = DECK_AT_BOW_STAY;
   }
 
   sync(boat) {
@@ -197,10 +195,7 @@ export class BoatMesh {
   getRiggingAnchors() {
     return {
       boomPivot: this.boomPivot,
-      mastTop: new THREE.Vector3(0, this._mastTopY, 0.5),
-      mastBase: new THREE.Vector3(0, this._boomY, 0.5),
-      bowstayBase: new THREE.Vector3(0, this._bowStayY, 3.6),
-      deckTop: this._bowStayY,
+      deckTop: this._deckTop,
       heelPivot: this.heelPivot,
     };
   }

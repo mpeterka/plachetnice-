@@ -21,9 +21,9 @@ export function createSky(scene, renderer, sun) {
 
   if (sun) sun.position.copy(sunPos).multiplyScalar(400);
 
-  // PMREM environment map z oblohy
+  // PMREM env map z oblohy → realistické odrazy na vodě i lodi.
+  // Dispose generator po vygenerování (texturu si Three.js drží sám).
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(sky).texture;
-
-  return { sky, sunPosition: sunPos };
+  pmrem.dispose();
 }

@@ -1,32 +1,27 @@
-import * as THREE from 'three';
 import { BOAT } from '../config.js';
 
-// Semi-implicit Euler step pro lineární pohyb a yaw rotaci.
-// Síly v rovině XZ (Y zůstává 0 — bez vln/buoyancy v MVP).
+// Semi-implicit Euler — pro herní fyziku ideální (stabilnější než explicit, levnější než RK4).
+
 export function stepLinear(boat, F, dt) {
-  // a = F/m
-  const acc = new THREE.Vector3(F.x / BOAT.mass, 0, F.z / BOAT.mass);
-  boat.velocity.add(acc.multiplyScalar(dt));
-  // pos update
+  // Síly působí jen v rovině XZ; y zůstává 0 (bez vln/buoyancy v MVP).
+  boat.velocity.x += (F.x / BOAT.mass) * dt;
+  boat.velocity.z += (F.z / BOAT.mass) * dt;
   boat.position.addScaledVector(boat.velocity, dt);
 }
 
-// Kormidlo: torque proporcionální |v|² · sin(angle), tlumený útlumem.
+// Kormidlo: torque ∝ |v_fwd|² · sin(rudderAngle).
+// Znaménko: rudderAngle > 0 (kormidlo doleva) má otáčet příď doleva = heading klesá v naší
+// konvenci (heading roste po směru hodin). Proto -k v torque vzorci.
+// Při couvání (v_fwd < 0) se torque obrátí — stejně jako u reálné lodi.
 export function stepYaw(boat, dt) {
   const fwdSpeed = boat.velocity.dot(boat.forward());
-  // Pozor na znaménko: kormidlo doleva (+rudderAngle) → příď doleva (yaw +).
-  // Kladný yaw v naší konvenci (heading roste) odpovídá rotaci doprava? Záleží na konvenci.
-  // heading 0 → fwd = +Z. heading +π/2 → fwd = +X (rotace „doprava" v top-down view kde Z je nahoru).
-  // To je správně intuitivně (kompasově): heading roste po směru hodinových ručiček v top-down.
-  // Kormidlo doleva by mělo otáčet loď proti směru ručiček (heading klesá).
-  // Takže yawTorque = -k * |v|² * sin(rudderAngle) * (sign of fwdSpeed)
-  const speedSq = fwdSpeed * Math.abs(fwdSpeed);
-  const torque = -BOAT.k_rudder * speedSq * Math.sin(boat.rudderAngle) * BOAT.rudderArm;
-  const angAcc = torque / BOAT.I_yaw;
-  boat.angVelYaw += angAcc * dt;
+  const speedSigned = fwdSpeed * Math.abs(fwdSpeed);
+  const torque = -BOAT.k_rudder * speedSigned * Math.sin(boat.rudderAngle) * BOAT.rudderArm;
+  boat.angVelYaw += (torque / BOAT.I_yaw) * dt;
   boat.angVelYaw *= Math.max(0, 1 - BOAT.yawDamping * dt);
   boat.heading += boat.angVelYaw * dt;
-  // Normalizuj heading na (-π, π] pro stabilitu
+  // Normalizuj na (-π, π]
   while (boat.heading > Math.PI) boat.heading -= 2 * Math.PI;
   while (boat.heading <= -Math.PI) boat.heading += 2 * Math.PI;
+  boat.updateBasis(); // heading se změnil → refresh cache pro další forces a render
 }

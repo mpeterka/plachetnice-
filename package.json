@@ -1,8 +1,20 @@
 {
   "name": "plachetnice",
-  "version": "0.1.0",
-  "description": "Plachetní simulátor v prohlížeči (Three.js)",
+  "version": "0.2.0",
+  "description": "Plachetní simulátor v prohlížeči s realistickou fyzikou (Three.js + Vite)",
   "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "sailing",
+    "simulator",
+    "three.js",
+    "webgl",
+    "game"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
