@@ -318,8 +318,12 @@ body.touch #touch-buttons {
   left: 8px;
   right: 8px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+.touch-btn.active {
+  background: rgba(70, 196, 110, 0.85);
+  border-color: rgba(255,255,255,0.6);
 }
 .touch-btn {
   background: rgba(10, 20, 35, 0.7);

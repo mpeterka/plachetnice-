@@ -15,6 +15,7 @@ export class Sails {
       reefFraction: 0,     // plynulý furler
       hoisted: true,
       areaFull: SAILS.jibAreaFull,
+      flipped: false,      // true = kosatka na opačné straně (motýlek / wing-on-wing)
     };
     this.toppingLift = false; // topenant: true = napnutý (drží ráhno); blokuje set/strike hlavní
   }
@@ -23,14 +24,15 @@ export class Sails {
   // sheetIn=0 → plachta vyjetá max, sheetIn=1 → blízko centerline.
   // Plachta nemůže být dál od centerline než dovoluje AWA: pokud vítr fouká od přídě,
   // plachta visí v centerline a luffuje (= žádný lift).
-  sailAngle(sail, awa) {
+  sailAngle(sail, awa, flipped = false) {
     const t = 1 - sail.sheetIn;
     const wantedMag = SAILS.minSheetAngle + t * (SAILS.maxSheetAngle - SAILS.minSheetAngle);
     const awaSign = Math.sign(awa);
     if (awaSign === 0) return 0;
     // Cap: plachta může jít max do AWA (jinak je vítr na špatné straně plachty → luffing).
     const cappedMag = Math.min(wantedMag, Math.abs(awa));
-    return -awaSign * cappedMag;
+    // flipped = obrátit stranu (kosatka na motýlka).
+    return (flipped ? awaSign : -awaSign) * cappedMag;
   }
 
   effectiveArea(sail) {

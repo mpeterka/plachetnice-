@@ -105,10 +105,16 @@ export function computeSailForces(boat, sails, trueWind) {
   // AWA znamenko určuje, na kterou stranu padne plachta. V no-go (AWA ~ 0)
   // sailAngle vrací 0 → luffing.
   const mainAngle = sails.sailAngle(sails.main, awa);
-  const jibAngle = sails.sailAngle(sails.jib, awa);
+  const jibAngle = sails.sailAngle(sails.jib, awa, sails.jib.flipped);
 
   const mainArea = sails.effectiveArea(sails.main);
-  const jibArea = sails.effectiveArea(sails.jib);
+  // Aerodynamický stín hlavní plachty na kosatku: pokud jsou na STEJNÉ straně
+  // a vítr fouká převážně zezadu (|AWA| > 130°), hlavní stíní kosatku.
+  // Vyklopení kosatky (flipped → opačná strana) ji ze stínu vytáhne ("motýlek").
+  const sameSide = Math.sign(mainAngle) !== 0 && Math.sign(mainAngle) === Math.sign(jibAngle);
+  const downwind = Math.abs(awa) > (130 * Math.PI) / 180;
+  const jibShadow = sameSide && downwind ? 0.2 : 1.0;
+  const jibArea = sails.effectiveArea(sails.jib) * jibShadow;
 
   const mainInfo = forceForSail({
     area: mainArea, sailLocalAngle: mainAngle, boatHeading: boat.heading,

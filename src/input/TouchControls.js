@@ -20,6 +20,20 @@ export class TouchControls {
     this._wireHoldButton(rootEl.querySelector('#btn-furl-out'), (dt) => {
       sails.jib.reefFraction = Math.max(0, sails.jib.reefFraction - 0.5 * dt);
     });
+    this._wireButton(rootEl.querySelector('#btn-jib-flip'), () => this._flipJib());
+
+    // Sync stavu tlačítka motýlka, pokud flip vyvolá Controls (G klávesa)
+    bus.on('jibFlipped', ({ flipped }) => {
+      const btn = this.root.querySelector('#btn-jib-flip');
+      if (btn) btn.classList.toggle('active', flipped);
+    });
+  }
+
+  _flipJib() {
+    this.sails.jib.flipped = !this.sails.jib.flipped;
+    const btn = this.root.querySelector('#btn-jib-flip');
+    if (btn) btn.classList.toggle('active', this.sails.jib.flipped);
+    this.bus.emit('jibFlipped', { flipped: this.sails.jib.flipped });
   }
 
   _wireSheet(padEl, getSail, setVal) {

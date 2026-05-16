@@ -16,6 +16,7 @@ export class Controls {
     keyboard.onPress('t', () => this._toggleTopping());
     keyboard.onPress('h', () => this._toggleHoist('main'));
     keyboard.onPress('j', () => this._toggleHoist('jib'));
+    keyboard.onPress('g', () => this._flipJib());
   }
 
   update(dt) {
@@ -59,6 +60,11 @@ export class Controls {
     if (!this.sails.toppingLift && !this.sails.main.hoisted) {
       // nic — uživatel pak stiskne H
     }
+  }
+
+  _flipJib() {
+    this.sails.jib.flipped = !this.sails.jib.flipped;
+    this.bus.emit('jibFlipped', { flipped: this.sails.jib.flipped });
   }
 
   _toggleHoist(which) {
