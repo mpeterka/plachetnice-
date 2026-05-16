@@ -14,6 +14,8 @@ import { Wind } from './wind/Wind.js';
 import { createScene } from './world/Scene.js';
 import { createSky } from './world/Sky.js';
 import { createWater } from './world/Water.js';
+import { createIslands } from './world/Islands.js';
+import { Rain } from './world/Rain.js';
 import { createRenderer, setupResize } from './render/Renderer.js';
 import { ChaseCamera } from './render/Camera.js';
 import { BoatMesh } from './render/BoatMesh.js';
@@ -27,6 +29,9 @@ const { scene, sun } = createScene();
 const { sky, sunPosition } = createSky(scene, renderer, sun);
 const water = createWater(sun);
 scene.add(water);
+
+// Ostrovy — náhodně rozházené kolem hráče, jen dekorativní (žádný vliv na fyziku ani vítr).
+createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
 
 const bus = new EventBus();
 const boat = new Boat();
@@ -62,6 +67,9 @@ scene.add(boatMesh.root);
 const sailMesh = new SailMesh(boatMesh, sails);
 const chase = new ChaseCamera(boat);
 setupResize(renderer, chase.camera);
+
+// Déšť kolem kamery — šrafa kapek ukazuje směr větru.
+const rain = new Rain(scene, chase.camera, { count: 350 });
 
 const hud = new HUD(bus);
 
@@ -129,6 +137,7 @@ const loop = new GameLoop({
     boatMesh.sync(boat);
     if (lastSailInfo) sailMesh.sync(sails, lastSailInfo, frameDelta);
     chase.update(frameDelta);
+    rain.update(frameDelta, wind);
     if (touchControls) touchControls.update(frameDelta);
     if (lastSailInfo) hud.update(boat, wind, sails, lastSailInfo, DIFFICULTY[currentDifficultyKey].name);
     renderer.render(scene, chase.camera);
