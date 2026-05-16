@@ -16,6 +16,7 @@ import { createSky } from './world/Sky.js';
 import { createWater } from './world/Water.js';
 import { createIslands } from './world/Islands.js';
 import { Rain } from './world/Rain.js';
+import { Wake } from './world/Wake.js';
 import { createRenderer, setupResize } from './render/Renderer.js';
 import { ChaseCamera } from './render/Camera.js';
 import { BoatMesh } from './render/BoatMesh.js';
@@ -70,6 +71,9 @@ setupResize(renderer, chase.camera);
 
 // Déšť kolem kamery — šrafa kapek ukazuje směr větru.
 const rain = new Rain(scene, chase.camera, { count: 350 });
+
+// Stopa ve vodě a vlna od přídě — indikují rychlost lodi.
+const wake = new Wake(scene, { max: 600 });
 
 const hud = new HUD(bus);
 
@@ -138,6 +142,7 @@ const loop = new GameLoop({
     if (lastSailInfo) sailMesh.sync(sails, lastSailInfo, frameDelta);
     chase.update(frameDelta);
     rain.update(frameDelta, wind);
+    wake.update(frameDelta, boat);
     if (touchControls) touchControls.update(frameDelta);
     if (lastSailInfo) hud.update(boat, wind, sails, lastSailInfo, DIFFICULTY[currentDifficultyKey].name);
     renderer.render(scene, chase.camera);
