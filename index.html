@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plachetní simulátor</title>
+    <link rel="stylesheet" href="/src/ui/hud.css" />
+  </head>
+  <body>
+    <canvas id="app"></canvas>
+    <div id="hud">
+      <div id="hud-top">
+        <div id="speed" class="hud-panel">
+          <div class="hud-label">Rychlost</div>
+          <div class="hud-value"><span id="speed-value">0.0</span> kn</div>
+          <div id="speed-bar" class="hud-bar"><div></div></div>
+        </div>
+        <div id="compass-wrap" class="hud-panel">
+          <svg id="compass" viewBox="-110 -110 220 220" aria-hidden="true"></svg>
+          <div id="course-label" class="course">—</div>
+        </div>
+        <div id="wind-info" class="hud-panel">
+          <div class="hud-label">Vítr</div>
+          <div class="hud-value"><span id="wind-speed">0</span> kn z <span id="wind-dir">—</span></div>
+          <div class="hud-sub" id="difficulty-label">Mírný vítr</div>
+        </div>
+      </div>
+
+      <div id="hud-right">
+        <div id="heel-meter" class="hud-panel">
+          <div class="hud-label">Náklon</div>
+          <div id="heel-gauge"><div id="heel-fill"></div><div id="heel-needle"></div></div>
+          <div class="hud-value"><span id="heel-value">0</span>°</div>
+        </div>
+      </div>
+
+      <div id="hud-bottom">
+        <div id="sail-controls" class="hud-panel">
+          <div class="sail-col">
+            <div class="hud-label">Otěž hlavní</div>
+            <div class="sail-slider"><div id="main-sheet-fill"></div></div>
+            <div class="hud-sub"><span id="main-sheet-value">50</span>%</div>
+            <div class="hud-sub">Ref: <span id="main-reef-value">0</span>/3</div>
+            <div class="hud-sub">Fal: <span id="main-hoist-value">▲</span></div>
+          </div>
+          <div class="sail-col">
+            <div class="hud-label">Otěž kosatky</div>
+            <div class="sail-slider"><div id="jib-sheet-fill"></div></div>
+            <div class="hud-sub"><span id="jib-sheet-value">50</span>%</div>
+            <div class="hud-sub">Furl: <span id="jib-furl-value">0</span>%</div>
+            <div class="hud-sub">Fal: <span id="jib-hoist-value">▲</span></div>
+          </div>
+          <div class="sail-col">
+            <div class="hud-label">Topenant</div>
+            <div class="hud-sub" id="topping-lift-value">uvolněn</div>
+          </div>
+        </div>
+        <div id="rudder" class="hud-panel">
+          <div class="hud-label">Kormidlo</div>
+          <div class="rudder-slider"><div id="rudder-needle"></div></div>
+        </div>
+      </div>
+
+      <div id="warnings"></div>
+      <div id="debug-hud" class="hud-panel hidden"></div>
+
+      <div id="help" class="hud-panel">
+        <div class="hud-label">Klávesy</div>
+        <div class="hud-sub">A/D kormidlo · W/S otěž hlavní · ↑/↓ otěž kosatky</div>
+        <div class="hud-sub">R ref · F/Shift+F furl kosatky · T topenant · H/J fal</div>
+        <div class="hud-sub">1–4 obtížnost · P pauza · ~ debug</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
