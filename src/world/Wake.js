@@ -130,21 +130,30 @@ export class Wake {
       this._spawn(px, pz, vx, vz, life, size);
     }
 
-    // === V-vlna od přídě (Kelvin ~19.5°) ===
+    // === V-vlna od přídě (Kelvin ~19.5° kolem SKUTEČNÉHO pohybu, ne heading) ===
+    // Pokud má loď drift (boční smyk), V se rozevírá symetricky kolem velocity vektoru,
+    // jinak by celé V vypadalo posunuté na závětrnou stranu (= bug, který jsi viděl).
     if (speed > 1.2) {
       const bowRate = speed * 14;
       this._bowSpawnAcc += bowRate * dt;
       const bowPos = new THREE.Vector3()
         .copy(boat.position)
         .addScaledVector(fwd, 4.0);
+      // Skutečný směr pohybu (normalizovaný) — kolem něj rozevíráme V.
+      const motionDir = boat.velocity.clone();
+      motionDir.y = 0;
+      motionDir.normalize();
+      // Perpendikulár v rovině XZ
+      const perpDir = new THREE.Vector3(-motionDir.z, 0, motionDir.x);
       const kSin = Math.sin(0.34);
       const kCos = Math.cos(0.34);
       const wakeSpeed = speed * 0.75;
       while (this._bowSpawnAcc >= 1) {
         this._bowSpawnAcc -= 1;
         const sideSign = Math.random() < 0.5 ? -1 : 1;
-        const vx = fwd.x * wakeSpeed * kCos + side.x * sideSign * wakeSpeed * kSin;
-        const vz = fwd.z * wakeSpeed * kCos + side.z * sideSign * wakeSpeed * kSin;
+        // V-pattern symetrické kolem motionDir (ne fwd)
+        const vx = motionDir.x * wakeSpeed * kCos + perpDir.x * sideSign * wakeSpeed * kSin;
+        const vz = motionDir.z * wakeSpeed * kCos + perpDir.z * sideSign * wakeSpeed * kSin;
         const startOff = sideSign * (0.1 + Math.random() * 0.3);
         const px = bowPos.x + side.x * startOff;
         const pz = bowPos.z + side.z * startOff;

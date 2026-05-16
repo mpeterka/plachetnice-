@@ -173,12 +173,13 @@ export class SailMesh {
     const { mainAngle, jibAngle, mainInfo, jibInfo } = sailForceInfo;
 
     // --- Hlavní: rotace ráhna kolem stěžně (osy Y v lokálu lodi) ---
-    // sailLocalAngle je úhel chordy plachty. Ráhno = chord.
-    this.anchors.boomPivot.rotation.y = mainAngle;
+    // Pozor na konvenci Three.js: +rotation.y otáčí směr -Z (aft) směrem k -X (port).
+    // sailLocalAngle > 0 znamená dle fyziky „chord na pravoboku" → potřeba zápor.
+    this.anchors.boomPivot.rotation.y = -mainAngle;
 
     // Vyboulení plachty (perpenikulární na chord) – v lokálu ráhna je „výchylka v +X" odpovídá normálnímu směru.
     // Síla plachty vyboulí list ve směru kolmém k chord. Velikost úměrná CL+CD.
-    const mainBulgeSign = -Math.sign(mainAngle) || 1; // plachta se vyboulí na opačnou stranu, kam je nasměrována
+    const mainBulgeSign = Math.sign(mainAngle) || 1; // bulge na stejnou stranu jako rotated pivot (lokální +X)
     const mainBulgeMag = Math.min(0.8, 0.3 + (mainInfo.CL + mainInfo.CD * 0.5));
     const mainLuff = mainInfo.luffing || sails.main.reefFraction > 0.9 || !sails.main.hoisted;
     const mainScaleY = sails.main.hoisted ? (1 - sails.main.reefFraction * 0.66) : 0.02;
@@ -186,8 +187,8 @@ export class SailMesh {
     this.mainMesh.visible = sails.main.hoisted && mainScaleY > 0.05;
 
     // --- Kosatka: pivot rotace kolem osy Y (forestay je tack point) ---
-    this.jibPivot.rotation.y = jibAngle;
-    const jibBulgeSign = -Math.sign(jibAngle) || 1;
+    this.jibPivot.rotation.y = -jibAngle;
+    const jibBulgeSign = Math.sign(jibAngle) || 1;
     const jibBulgeMag = Math.min(0.7, 0.25 + (jibInfo.CL + jibInfo.CD * 0.5));
     const jibLuff = jibInfo.luffing || sails.jib.reefFraction > 0.9 || !sails.jib.hoisted;
     const jibScale = sails.jib.hoisted ? (1 - sails.jib.reefFraction) : 0.02;
