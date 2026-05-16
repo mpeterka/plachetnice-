@@ -28,9 +28,19 @@ import { BOAT, DIFFICULTY, DIFFICULTY_ORDER, PHYSICS } from './config.js';
 const canvas = document.getElementById('app');
 const renderer = createRenderer(canvas);
 const { scene, sun } = createScene();
-createSky(scene, renderer, sun);
-const water = createWater(sun);
-scene.add(water);
+try {
+  createSky(scene, renderer, sun);
+} catch (err) {
+  console.warn('Sky init failed, using scene background only.', err);
+}
+
+let water = null;
+try {
+  water = createWater(sun);
+  scene.add(water);
+} catch (err) {
+  console.warn('Water init failed, continuing without water mesh.', err);
+}
 createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
 
 // === State ===
@@ -135,7 +145,7 @@ const loop = new GameLoop({
     lastSailInfo = sailInfo;
   },
   render(frameDelta) {
-    if (water.material.uniforms['time']) {
+    if (water?.material?.uniforms?.time) {
       water.material.uniforms['time'].value += frameDelta;
     }
     boatMesh.sync(boat);
