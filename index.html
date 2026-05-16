@@ -2,7 +2,11 @@
 <html lang="cs">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0a3a64" />
     <title>Plachetní simulátor</title>
     <link rel="stylesheet" href="/src/ui/hud.css" />
   </head>
@@ -69,6 +73,27 @@
         <div class="hud-sub">A/D kormidlo · W/S otěž hlavní · ↑/↓ otěž kosatky</div>
         <div class="hud-sub">R ref · F/Shift+F furl kosatky · T topenant · H/J fal</div>
         <div class="hud-sub">1–4 obtížnost · P pauza · ~ debug</div>
+      </div>
+
+      <div id="touch-controls">
+        <div class="touch-pad" id="touch-main">
+          <div class="touch-pad-label">Hlavní</div>
+          <div class="touch-track-v"><div class="touch-thumb-v"></div></div>
+        </div>
+        <div class="touch-pad" id="touch-jib">
+          <div class="touch-pad-label">Kosatka</div>
+          <div class="touch-track-v"><div class="touch-thumb-v"></div></div>
+        </div>
+        <div id="touch-rudder">
+          <div class="touch-pad-label">Kormidlo</div>
+          <div class="touch-track-h"><div class="touch-thumb-h"></div></div>
+        </div>
+        <div id="touch-buttons">
+          <button id="btn-ref" class="touch-btn">Ref 0/3</button>
+          <button id="btn-furl-out" class="touch-btn">◀ Kosatka</button>
+          <button id="btn-furl-in" class="touch-btn">Kosatka ▶</button>
+          <button id="btn-diff" class="touch-btn">Mírný</button>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>

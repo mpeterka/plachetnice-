@@ -3,6 +3,7 @@ import { GameLoop } from './core/GameLoop.js';
 import { EventBus } from './core/EventBus.js';
 import { Keyboard } from './input/Keyboard.js';
 import { Controls } from './input/Controls.js';
+import { TouchControls } from './input/TouchControls.js';
 import { Boat } from './physics/Boat.js';
 import { Sails } from './physics/Sails.js';
 import { computeSailForces } from './physics/SailForces.js';
@@ -38,6 +39,23 @@ const wind = new Wind(DIFFICULTY[currentDifficultyKey], bus);
 
 const keyboard = new Keyboard();
 const controls = new Controls(keyboard, sails, boat, bus);
+
+// Detekce dotykového zařízení → aktivuje touch overlay
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+let touchControls = null;
+if (isTouch) {
+  document.body.classList.add('touch');
+  touchControls = new TouchControls(document.getElementById('touch-controls'), sails, boat, bus);
+  // Tlačítko obtížnosti cyklí mezi 4 presety
+  const diffBtn = document.getElementById('btn-diff');
+  diffBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const idx = DIFFICULTY_ORDER.indexOf(currentDifficultyKey);
+    const nextKey = DIFFICULTY_ORDER[(idx + 1) % DIFFICULTY_ORDER.length];
+    switchDifficulty(nextKey);
+    diffBtn.textContent = DIFFICULTY[nextKey].name;
+  });
+}
 
 const boatMesh = new BoatMesh();
 scene.add(boatMesh.root);
@@ -100,6 +118,7 @@ const loop = new GameLoop({
     boatMesh.sync(boat);
     if (lastSailInfo) sailMesh.sync(sails, lastSailInfo, frameDelta);
     chase.update(frameDelta);
+    if (touchControls) touchControls.update(frameDelta);
     if (lastSailInfo) hud.update(boat, wind, sails, lastSailInfo, DIFFICULTY[currentDifficultyKey].name);
     renderer.render(scene, chase.camera);
   },

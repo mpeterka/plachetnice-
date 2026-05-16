@@ -25,8 +25,8 @@ export class Controls {
     let r = this.boat.rudderAngle;
     if (this.kb.isDown('a')) r += rudderRate * dt;
     else if (this.kb.isDown('d')) r -= rudderRate * dt;
-    else {
-      // spring back
+    else if (!this.boat._rudderTouched) {
+      // spring back (jen pokud kormidlo právě neovládá touch)
       if (r > 0) r = Math.max(0, r - returnRate * dt);
       else if (r < 0) r = Math.min(0, r + returnRate * dt);
     }
