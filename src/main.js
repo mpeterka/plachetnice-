@@ -92,6 +92,19 @@ function switchDifficulty(key) {
   bus.emit('warning', { code: 'difficulty', msg: `Obtížnost: ${DIFFICULTY[key].name}` });
 }
 
+// Fullscreen tlačítko (Android: nativní, iOS Safari: Fullscreen API není
+// pro DOM elementy — uživatel může "Add to Home Screen" pro PWA režim).
+document.getElementById('btn-fullscreen').addEventListener('click', () => {
+  const el = document.documentElement;
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.();
+  } else if (el.requestFullscreen) {
+    el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  } else if (el.webkitRequestFullscreen) {
+    el.webkitRequestFullscreen();
+  }
+});
+
 // Reakce na náraz větru: vibrace (Android — iOS Safari ignoruje) + otřes kamery.
 bus.on('gust', ({ peak }) => {
   // Vibration API: pattern [vib, pauza, vib] v ms. Délka & intenzita škálovaná peakem.

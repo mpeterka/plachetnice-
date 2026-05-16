@@ -15,15 +15,24 @@ export class Rain {
     this.positions = new Float32Array(this.count * 6); // 2 endpointy × 3 floats
     this.fallSpeeds = new Float32Array(this.count);
     this.tailScales = new Float32Array(this.count);    // variace délky kapek
+    this.colors = new Float32Array(this.count * 6);    // per-vertex barva (gradient head→tail)
 
-    for (let i = 0; i < this.count; i++) this._spawn(i, true);
+    for (let i = 0; i < this.count; i++) {
+      this._spawn(i, true);
+      // Head (vertex 0) = jasná bílá, tail (vertex 1) = tmavá modrá
+      // → vizuálně „komet": světlý konec ukazuje KAM kapka letí (= směr větru + dolů)
+      this.colors[i * 6 + 0] = 1.0; this.colors[i * 6 + 1] = 1.0; this.colors[i * 6 + 2] = 1.0;
+      this.colors[i * 6 + 3] = 0.25; this.colors[i * 6 + 4] = 0.35; this.colors[i * 6 + 5] = 0.55;
+    }
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.colors, 3));
     const mat = new THREE.LineBasicMaterial({
-      color: 0xe0eef8,                 // jasnější (skoro bílá s lehkým modrým nádechem)
+      color: 0xffffff,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.85,
       depthWrite: false,
     });
     this.mesh = new THREE.LineSegments(geo, mat);

@@ -32,7 +32,7 @@ export function liftDragCoeffs(alphaAbs) {
   let CL, CD;
   if (alphaAbs < aLuff) {
     CL = 0;
-    CD = 0.05;
+    CD = 0.01; // plápolající plachta má minimální projekci → skoro nulový odpor (žádný drift dozadu v irons)
   } else if (alphaAbs < aPeak) {
     // lineární náběh
     const t = (alphaAbs - aLuff) / (aPeak - aLuff);

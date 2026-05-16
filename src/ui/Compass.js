@@ -6,9 +6,10 @@ export class Compass {
   constructor(svgEl) {
     this.svg = svgEl;
     this._buildStatic();
-    this.headingNeedle = this._needle('#ffffff', -80, 80, 6);
-    this.trueWindNeedle = this._needle('#ff5050', -80, 75, 5);
-    this.apparentNeedle = this._needle('#46c46e', -80, 75, 5);
+    // Apex (špička) musí být u TOP (záporná SVG y), aby rotate(0°) ukazovalo na sever.
+    this.headingNeedle = this._needle('#ffffff', 80, -85, 8);   // širší = jasně „loď"
+    this.trueWindNeedle = this._needle('#ff5050', 80, -78, 5);
+    this.apparentNeedle = this._needle('#46c46e', 80, -78, 5);
     this.headingGroup = this._wrap(this.headingNeedle);
     this.trueGroup = this._wrap(this.trueWindNeedle);
     this.apparentGroup = this._wrap(this.apparentNeedle);
