@@ -80,6 +80,17 @@ function switchDifficulty(key) {
   bus.emit('warning', { code: 'difficulty', msg: `Obtížnost: ${DIFFICULTY[key].name}` });
 }
 
+// Reakce na náraz větru: vibrace (Android — iOS Safari ignoruje) + otřes kamery.
+bus.on('gust', ({ peak }) => {
+  // Vibration API: pattern [vib, pauza, vib] v ms. Délka & intenzita škálovaná peakem.
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    const dur = Math.min(220, 60 + peak * 18);
+    try { navigator.vibrate([Math.round(dur), 40, Math.round(dur * 0.5)]); } catch {}
+  }
+  // Otřes kamery: vizuální nahrazka haptiky pro iOS / desktop.
+  chase.shake(Math.min(0.6, 0.06 * peak));
+});
+
 // Pomocné: spočítat výšku CE jako vážený průměr (hlavní vs kosatka)
 function effectiveCE() {
   const aM = sails.effectiveArea(sails.main);
