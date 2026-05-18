@@ -1,8 +1,8 @@
 import { BOAT } from '../config.js';
-import { cycleMainReef, flipJib, toggleToppingLift, toggleHoist } from './sailActions.js';
+import { cycleMainReef, cycleMainTension, flipJib, toggleHoist } from './sailActions.js';
 
 // Mapování klávesnice → herní stav. Kontinuální vstup (otěže, kormidlo) v update(),
-// diskrétní (ref, fal, topenant, motýlek) jako onPress.
+// diskrétní (ref, fal, napnutí hlavní, motýlek) jako onPress.
 export class Controls {
   constructor(keyboard, sails, boat, bus) {
     this.kb = keyboard;
@@ -10,7 +10,7 @@ export class Controls {
     this.boat = boat;
 
     keyboard.onPress('r', () => cycleMainReef(sails, bus));
-    keyboard.onPress('t', () => toggleToppingLift(sails));
+    keyboard.onPress('t', () => cycleMainTension(sails));
     keyboard.onPress('h', () => toggleHoist(sails, 'main', bus));
     keyboard.onPress('j', () => toggleHoist(sails, 'jib', bus));
     keyboard.onPress('g', () => flipJib(sails, bus));

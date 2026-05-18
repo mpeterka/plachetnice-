@@ -69,6 +69,7 @@ function makeHullGeometry() {
     // Pohled zezadu (z -Z) — wind CCW
     indices.push(i, centerIdx, i + 1);
   }
+  indices.push(RING_SIZE - 1, centerIdx, 0);
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));

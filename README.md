@@ -1,4 +1,4 @@
-# Plachetnice 🛥️
+# Plachetnice
 
 Plachetnicový simulátor v prohlížeči s realistickou aerodynamikou plachet — zdánlivý vítr (apparent wind), náklon, mrtvý úhel proti větru, body větru (close-hauled, půl větru, zadoboční, po větru). Běží na desktopu i na telefonu.
 
@@ -9,6 +9,7 @@ Plachetnicový simulátor v prohlížeči s realistickou aerodynamikou plachet �
 ```bash
 npm install
 npm run dev          # http://localhost:5173
+npm test             # regresní testy fyziky, jezera, flotily a plachet
 npm run build        # produkční bundle do dist/
 npm run preview      # preview produkčního buildu
 ```
@@ -27,7 +28,7 @@ Vyžaduje Node ≥ 18.
 | `R` | Cyklus refů hlavní (0 → 1 → 2 → 3 → 0) |
 | `F` / `Shift+F` | Svinout / rozvinout kosatku |
 | `G` | Motýlek (přehození kosatky na návětrnou stranu pro plavbu po větru) |
-| `T` | Topenant na/dolů (drží ráhno; musí být uvolněn před hisováním hlavní) |
+| `T` | Napnutí hlavní plachty (normální / napnutá / volná) |
 | `H` / `J` | Fal hlavní / kosatky (hisovat / vesovat) |
 | `1` – `4` | Bezvětří / Mírný vítr / Čerstvý vítr / Bouře |
 | `P` | Pauza |
@@ -47,10 +48,11 @@ iOS Safari neumožňuje Fullscreen API přes DOM — pro plné okno přidej hru 
 
 ## Co je ve hře
 
-- **Realistická aerodynamika plachet** — zdánlivý vítr (apparent wind), body větru (close-hauled, půl větru, zadoboční vítr, po větru), mrtvý úhel proti větru (~±40°), náklon lodi modelovaný jako rovnice s vratným momentem přes metacentrickou výšku, aerodynamický stín hlavní plachty na kosatku (motivace k přehození kosatky na motýlka při plavbě po větru).
+- **Realistická aerodynamika plachet** — zdánlivý vítr (apparent wind), body větru (close-hauled, půl větru, zadoboční vítr, po větru), mrtvý úhel proti větru (~±40°), napnutí hlavní plachty (volná / normální / napnutá), náklon lodi modelovaný jako rovnice s vratným momentem přes metacentrickou výšku, aerodynamický stín hlavní plachty na kosatku (motivace k přehození kosatky na motýlka při plavbě po větru).
 - **4 stupně síly větru** — od bezvětří (6 uzlů, drobné poryvy) po bouři (32 uzlů, silné poryvy, kdy je nutné refovat).
-- **Procedurální svět** — 28 ostrovů s organickou geometrií, vlnitá hladina přes vlastní FBM normal mapu (4 oktávy noise), obloha s atmosférickým rozptylem a env mapou pro odrazy.
-- **Vizuální zpětná vazba** — pěnové bublinky v brázdě (custom shader, per-particle velikost), V-vlna od přídě v Kelvinově úhlu (centrovaná podle skutečné dráhy lodi, ne podle kursu), déšť jako „cometové" šrafy (jasná hlava → ukazuje směr větru).
+- **Uzavřené jezero** — procedurální břeh, plážový prstenec, pevnina se stromy a kolize, která drží hráčovu loď na vodě.
+- **Okolní flotila** — několik autonomně plujících plachetnic s jmenovkami, které si vybírají cíle uvnitř bezpečné části jezera.
+- **Vizuální zpětná vazba** — pěnové bublinky v brázdě (custom shader, per-particle velikost), V-vlna od přídě v Kelvinově úhlu (centrovaná podle skutečné dráhy lodi, ne podle kursu), vlnitá hladina přes vlastní FBM normal mapu a obloha s atmosférickým rozptylem.
 - **Haptika** — vibrace při poryvu (Android), camera shake jako vizuální nahrazka pro iOS / desktop.
 - **HUD v češtině** — windrose s boat-up orientací (loď je vždy nahoře, kardinály se otáčí s kursem), zvýrazněný mrtvý úhel, šipky pravého i zdánlivého větru, rychloměr v uzlech, posuvníky otěží, ukazatel náklonu, dynamická varování (luffing / poryv / hrozí převrhnutí).
 
@@ -72,11 +74,20 @@ src/
 ├── physics/             # Boat, Sails, SailForces, HullDrag, Heel, Integrator
 ├── wind/                # Wind, Gust
 ├── render/              # Renderer, Camera, BoatMesh, SailMesh
-├── world/               # Scene, Sky, Water, Islands, Rain, Wake
+├── world/               # Scene, Sky, Water, Lake*, Fleet*, Wake
 └── ui/                  # HUD, Compass, hud.css
 ```
 
 Detailní popis konvencí (kurs, osy, znaménka rotací) a fyzikálních vzorců viz [`AGENTS.md`](./AGENTS.md).
+
+## Testy
+
+```bash
+npm test
+npm run build
+```
+
+Testy běží přes vestavěný `node:test` runner. Pokrývají regresní chování plachetní fyziky, geometrii plachet, omezení pohybu na jezero, cíle okolní flotily a čitelnost jmenovek.
 
 ## Deploy
 

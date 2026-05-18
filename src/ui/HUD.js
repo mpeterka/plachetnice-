@@ -28,7 +28,7 @@ export class HUD {
       jibSheetValue: document.getElementById('jib-sheet-value'),
       jibFurl: document.getElementById('jib-furl-value'),
       jibHoist: document.getElementById('jib-hoist-value'),
-      topping: document.getElementById('topping-lift-value'),
+      mainTension: document.getElementById('main-tension-value'),
       rudderNeedle: document.getElementById('rudder-needle'),
       heelValue: document.getElementById('heel-value'),
       heelFill: document.getElementById('heel-fill'),
@@ -96,7 +96,11 @@ export class HUD {
     el.jibFurl.textContent = Math.round(sails.jib.reefFraction * 100);
     el.jibHoist.textContent = sails.jib.hoisted ? '▲ nahoře' : '▽ dole';
 
-    el.topping.textContent = sails.toppingLift ? 'napnut' : 'uvolněn';
+    el.mainTension.textContent = {
+      loose: 'volná',
+      normal: 'normální',
+      tight: 'napnutá',
+    }[sails.main.tension] ?? 'normální';
 
     const rNorm = boat.rudderAngle / (Math.PI / 4);
     el.rudderNeedle.style.left = (50 + rNorm * 50) + '%';

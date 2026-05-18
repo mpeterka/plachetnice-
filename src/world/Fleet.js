@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createFleetState } from './FleetState.js';
-import { labelFontSize } from './FleetLabels.js';
+import { createHullNamePlateConfigs, labelFontSize } from './FleetLabels.js';
 import { BoatMesh } from '../render/BoatMesh.js';
 import { SailMesh } from '../render/SailMesh.js';
 import { Sails } from '../physics/Sails.js';
@@ -32,18 +32,23 @@ function createBoatVisual(name) {
   const boatMesh = new BoatMesh();
   const sails = new Sails();
   const sailMesh = new SailMesh(boatMesh, sails);
-  const namePlate = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.0, 0.5),
-    new THREE.MeshBasicMaterial({
-      map: makeNameTexture(name),
-      transparent: true,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    }),
-  );
-  namePlate.rotation.y = Math.PI / 2;
-  namePlate.position.set(0.04, 3.15, -1.18);
-  sailMesh.anchors.boomPivot.add(namePlate);
+  const nameTexture = makeNameTexture(name);
+  const namePlateGeo = new THREE.PlaneGeometry(1.55, 0.38);
+  const namePlateMat = new THREE.MeshBasicMaterial({
+    map: nameTexture,
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+  });
+
+  for (const config of createHullNamePlateConfigs()) {
+    const namePlate = new THREE.Mesh(namePlateGeo, namePlateMat);
+    namePlate.name = `fleet-name-${config.side}-${name}`;
+    namePlate.rotation.y = config.rotationY;
+    namePlate.position.set(config.position.x, config.position.y, config.position.z);
+    sailMesh.anchors.heelPivot.add(namePlate);
+  }
 
   return {
     root: boatMesh.root,

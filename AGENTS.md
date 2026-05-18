@@ -6,9 +6,9 @@ Pokyny pro AI agenty pracující na tomto repozitáři.
 
 Plachetní simulátor v prohlížeči. Realistická plachetní fyzika
 (apparent wind, heel angle, no-go zóna, point of sail), kamera ve 3.
-osobě, HUD v češtině, touch ovládání pro mobil, ostrovy, déšť jako
-indikátor směru větru, pěnová stopa + V-vlna od přídě, gust system se
-4 obtížnostmi.
+osobě, HUD v češtině, touch ovládání pro mobil, uzavřené jezero s
+břehem a kolizí, okolní flotila s jmenovkami, pěnová stopa + V-vlna od
+přídě, gust system se 4 obtížnostmi.
 
 Stack: **Three.js + Vite + vanilla JS (ESM), žádné runtime deps navíc.**
 
@@ -17,6 +17,7 @@ Stack: **Three.js + Vite + vanilla JS (ESM), žádné runtime deps navíc.**
 ```bash
 npm install
 npm run dev          # http://localhost:5173
+npm test             # regresní testy přes node:test
 npm run build        # produkční bundle do dist/
 npm run preview      # preview build
 ```
@@ -37,11 +38,12 @@ src/
 ├── input/
 │   ├── Keyboard.js      # raw key state, jednorázové onPress handlery
 │   ├── Controls.js      # mapování kláves → sails/boat state (kontinuální + diskrétní)
-│   └── TouchControls.js # touch overlay (slidery, tlačítka) pro mobil
+│   ├── TouchControls.js # touch overlay (slidery, tlačítka) pro mobil
+│   └── sailActions.js   # sdílené akce: ref, napnutí hlavní, fal, motýlek
 ├── physics/
 │   ├── Boat.js          # plain-data state: pozice, heading, velocity, heel, rudder
-│   ├── Sails.js         # state main+jib + sailAngle() s no-go capem + jib flip pro motýlka
-│   ├── SailForces.js    # apparent wind, CL/CD křivky, aerodynamický stín hlavní na kosatku
+│   ├── Sails.js         # state main+jib + tension + sailAngle() s no-go capem + jib flip
+│   ├── SailForces.js    # apparent wind, CL/CD křivky, napnutí hlavní, stín hlavní na kosatku
 │   ├── HullDrag.js      # kvadratický fwd drag + silná boční rezistence (kýl)
 │   ├── Heel.js          # 1-DOF náklon, restoring moment přes GM, tlumení
 │   └── Integrator.js    # semi-implicit Euler pro lineární pohyb a yaw
@@ -57,8 +59,11 @@ src/
 │   ├── Scene.js         # THREE.Scene + lights + fog
 │   ├── Sky.js           # THREE.Sky + PMREM env mapa
 │   ├── Water.js         # THREE.Water + procedurální FBM normal mapa
-│   ├── Islands.js       # 28 ostrovů jako hemisféry s noise displacementem + pískové prstence
-│   ├── Rain.js          # 900 LineSegments kapek s vertex colors (komet efekt → směr větru)
+│   ├── LakeBounds.js    # tvar jezera, clamp a kolize hráčovy lodi s břehem
+│   ├── LakeShore.js     # plážový prstenec, pevnina a stromová linie kolem jezera
+│   ├── FleetState.js    # jednoduchá autonomní navigace okolních plachetnic
+│   ├── FleetLabels.js   # výpočet velikosti textu pro jmenovky flotily
+│   ├── Fleet.js         # vizuály okolní flotily + plachty + jmenovky
 │   └── Wake.js          # 1000 bublinkových částic (custom ShaderMaterial + radial-gradient sprite)
 └── ui/
     ├── HUD.js           # update všech HUD prvků každý frame
@@ -123,6 +128,11 @@ q (dynamic pressure) = 0.5 · ρ_air · AWS²
 F_aero = q · A_eff · (CL · perp(apparent) + CD · dir(apparent))
 A_eff = A_full · (1 - reefFraction) · max(0.2, cos(heel))    // spill při velkém heelu
 
+mainTensionFactors(tension):
+  normal → lift=1,    drag=1,    force=1,    luff=1
+  tight  → lift=1.08, drag=0.96, force=1.08, luff=0.8
+  loose  → lift=0.72, drag=1.08, force=0.8,  luff=1.35
+
 Pokud jsou main a jib na stejné straně AND |AWA| > 130° → jib v aerodynamickém stínu,
   jib_A_eff *= 0.2  (= motivace vyklopit kosatku na motýlka)
 ```
@@ -153,9 +163,10 @@ V `Integrator.js`: semi-implicit Euler (`v += a·dt; x += v·dt`).
    - `controls.update(dt)` (input → sails/boat state)
    - `wind.update(dt, t)` (noise + gust scheduler)
    - `computeSailForces()`, `computeHullDrag()` → integrovat → `stepHeel()`
+   - `applyLakeCollision()` drží hráčovu loď v hranicích jezera
 3. Per frame:
    - `boatMesh.sync()`, `sailMesh.sync()`
-   - `chase.update()`, `rain.update()`, `wake.update()`, `touchControls.update()`
+   - `chase.update()`, `wake.update()`, `fleet.update()`, `touchControls.update()`
    - `hud.update()`
    - `renderer.render()`
 
@@ -186,17 +197,26 @@ vznikl, ne jen že je opravený.
 - **THREE.Water shader** interně sampluje normal texturu na 4 měřítkách
   (103, 107, 8907, 1091 jednotek). Pro vlnky vidíhené z lodi je důležitý
   parametr `size` (60 = perioda ~1-2m blízko).
+- **README drž aktuální** — při změně chování hry, ovládání, spouštění,
+  testů, deploye nebo významné struktury modulů aktualizuj i `README.md`.
 
 ## Testy
 
-Aktuálně **žádné automatizované testy**. Manuální sanity check po změnách:
+Automatizované regresní testy běží přes `node:test`:
+
+```bash
+npm test
+```
+
+Pokrývají plachetní fyziku, geometrii plachet, hranice jezera, cíle flotily
+a čitelnost jmenovek. Manuální sanity check po změnách:
 - Beam reach (vítr z boku) → loď se rozjede do ~5 kn
 - No-go zóna (příď proti větru) → loď stojí, plachty luffují
 - Tack: otoč přes vítr, plachty musí přehodit stranu
 - Gust: očekávat camera shake + (Android) vibrace
 - Mobilní touch: slidery, kormidlo se vrací do středu, tlačítka cyklí
 
-Před commitem: `npm run build` (musí projít bez chyb).
+Před commitem: `npm test` a `npm run build` (musí projít bez chyb).
 
 ## Co NEdělat
 

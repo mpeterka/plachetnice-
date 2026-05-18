@@ -12,15 +12,14 @@ export function flipJib(sails, bus) {
   bus.emit('jibFlipped', { flipped: sails.jib.flipped });
 }
 
-export function toggleToppingLift(sails) {
-  sails.toppingLift = !sails.toppingLift;
+const MAIN_TENSION_ORDER = ['normal', 'tight', 'loose'];
+
+export function cycleMainTension(sails) {
+  const current = MAIN_TENSION_ORDER.indexOf(sails.main.tension);
+  sails.main.tension = MAIN_TENSION_ORDER[(current + 1) % MAIN_TENSION_ORDER.length];
 }
 
 export function toggleHoist(sails, which, bus) {
   const sail = sails[which];
-  if (which === 'main' && sails.toppingLift && !sail.hoisted) {
-    bus.emit('warning', { code: 'topping-blocks-main', msg: 'Uvolni topenant (T) před nahozením hlavní.' });
-    return;
-  }
   sail.hoisted = !sail.hoisted;
 }

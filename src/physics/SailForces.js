@@ -25,10 +25,11 @@ export function computeApparent(boat, trueWind) {
 //   10°–20° → lineární náběh do CL=1.2
 //   20°–90° → sin(2α) klesá, drag roste
 //   ≥ 90° → čistě drag-driven (downwind „spinakr efekt")
-export function liftDragCoeffs(alphaAbs) {
-  if (alphaAbs < SAILS.alphaLuff) return { CL: 0, CD: 0.01 };
+export function liftDragCoeffs(alphaAbs, luffFactor = 1) {
+  const alphaLuff = SAILS.alphaLuff * luffFactor;
+  if (alphaAbs < alphaLuff) return { CL: 0, CD: 0.01 };
   if (alphaAbs < SAILS.alphaPeak) {
-    const t = (alphaAbs - SAILS.alphaLuff) / (SAILS.alphaPeak - SAILS.alphaLuff);
+    const t = (alphaAbs - alphaLuff) / (SAILS.alphaPeak - alphaLuff);
     return { CL: 1.2 * t, CD: 0.05 + 0.05 * t * t };
   }
   if (alphaAbs < Math.PI / 2) {
@@ -39,8 +40,18 @@ export function liftDragCoeffs(alphaAbs) {
   return { CL: 0, CD: 1.2 * s * s };
 }
 
+export function mainTensionFactors(tension) {
+  if (tension === 'loose') {
+    return { lift: 0.72, drag: 1.08, force: 0.8, luff: 1.35 };
+  }
+  if (tension === 'tight') {
+    return { lift: 1.08, drag: 0.96, force: 1.08, luff: 0.8 };
+  }
+  return { lift: 1, drag: 1, force: 1, luff: 1 };
+}
+
 // Síla jedné plachty (ve světových osách). Vrátí i pomocné info pro HUD.
-function forceForSail(area, sailLocalAngle, boatHeading, apparent, aws, heelCos) {
+function forceForSail(area, sailLocalAngle, boatHeading, apparent, aws, heelCos, factors = mainTensionFactors('normal')) {
   if (area <= 0 || aws < 0.01) {
     return { force: new THREE.Vector3(), CL: 0, CD: 0, alpha: 0, luffing: false };
   }
@@ -52,7 +63,9 @@ function forceForSail(area, sailLocalAngle, boatHeading, apparent, aws, heelCos)
   else if (alpha < -Math.PI / 2) alpha += Math.PI;
   const alphaAbs = Math.abs(alpha);
 
-  const { CL, CD } = liftDragCoeffs(alphaAbs);
+  const raw = liftDragCoeffs(alphaAbs, factors.luff);
+  const CL = raw.CL * factors.lift;
+  const CD = raw.CD * factors.drag;
   // Spill při velkém heelu — projekce plachty do směru větru klesá s cos(heel).
   const A = area * Math.max(0.2, heelCos);
   const q = 0.5 * PHYSICS.RHO_AIR * aws * aws;
@@ -68,9 +81,9 @@ function forceForSail(area, sailLocalAngle, boatHeading, apparent, aws, heelCos)
 
   const scaleD = q * A * CD;
   const scaleL = q * A * CL;
-  const force = new THREE.Vector3(scaleD * dx + scaleL * lx, 0, scaleD * dz + scaleL * lz);
+  const force = new THREE.Vector3(scaleD * dx + scaleL * lx, 0, scaleD * dz + scaleL * lz).multiplyScalar(factors.force);
 
-  return { force, CL, CD, alpha, luffing: alphaAbs < SAILS.alphaLuff && CL === 0 };
+  return { force, CL, CD, alpha, luffing: alphaAbs < SAILS.alphaLuff * factors.luff && CL === 0 };
 }
 
 // Hlavní vstup do plachetní fyziky.
@@ -91,7 +104,7 @@ export function computeSailForces(boat, sails, trueWind) {
   const downwind = Math.abs(awa) > (130 * Math.PI) / 180;
   const jibArea = sails.effectiveArea(sails.jib) * (sameSide && downwind ? 0.2 : 1.0);
 
-  const mainInfo = forceForSail(mainArea, mainAngle, heading, apparent, aws, heelCos);
+  const mainInfo = forceForSail(mainArea, mainAngle, heading, apparent, aws, heelCos, mainTensionFactors(sails.main.tension));
   const jibInfo = forceForSail(jibArea, jibAngle, heading, apparent, aws, heelCos);
 
   const F = new THREE.Vector3().add(mainInfo.force).add(jibInfo.force);

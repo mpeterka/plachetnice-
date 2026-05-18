@@ -14,6 +14,7 @@ import { Wind } from './wind/Wind.js';
 import { createScene, updateSunTarget } from './world/Scene.js';
 import { createSky } from './world/Sky.js';
 import { createWater } from './world/Water.js';
+import { createShadowCatcher, updateShadowCatcher } from './world/ShadowCatcher.js';
 import { createLakeShore } from './world/LakeShore.js';
 import { applyLakeCollision } from './world/LakeBounds.js';
 import { Fleet } from './world/Fleet.js';
@@ -42,6 +43,7 @@ try {
 } catch (err) {
   console.warn('Water init failed, continuing without water mesh.', err);
 }
+const shadowCatcher = createShadowCatcher(scene);
 
 try {
   createLakeShore(scene);
@@ -177,6 +179,7 @@ const loop = new GameLoop({
     }
     boatMesh?.sync(boat);
     updateSunTarget(sun, boat.position);
+    updateShadowCatcher(shadowCatcher, boat.position);
     if (lastSailInfo) sailMesh?.sync(sails, lastSailInfo, frameDelta);
     chase.update(frameDelta);
     wake?.update(frameDelta, boat);

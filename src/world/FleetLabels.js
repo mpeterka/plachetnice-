@@ -7,3 +7,18 @@ export function labelFontSize(ctx, name, maxWidth, initialSize = 44, minSize = 2
   }
   return minSize;
 }
+
+export function createHullNamePlateConfigs() {
+  return [
+    {
+      side: 'port',
+      position: { x: -1.23, y: 0.62, z: -0.75 },
+      rotationY: -Math.PI / 2,
+    },
+    {
+      side: 'starboard',
+      position: { x: 1.23, y: 0.62, z: -0.75 },
+      rotationY: Math.PI / 2,
+    },
+  ];
+}

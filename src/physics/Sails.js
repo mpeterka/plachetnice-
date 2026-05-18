@@ -8,6 +8,7 @@ export class Sails {
       reefFraction: 0,     // 0..1 (0/0.33/0.66 podle reefStep)
       reefStep: 0,         // 0..3
       hoisted: true,       // plachta nahoře?
+      tension: 'normal',   // obecné napnutí: loose | normal | tight
       areaFull: SAILS.mainAreaFull,
     };
     this.jib = {
@@ -17,7 +18,6 @@ export class Sails {
       areaFull: SAILS.jibAreaFull,
       flipped: false,      // true = kosatka na opačné straně (motýlek / wing-on-wing)
     };
-    this.toppingLift = false; // topenant: true = napnutý (drží ráhno); blokuje set/strike hlavní
   }
 
   // Vrací efektivní úhel plachty od osy lodi (na opačnou stranu od větru).

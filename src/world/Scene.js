@@ -11,13 +11,15 @@ export function createScene() {
   sun.position.set(200, 400, 100);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -1200;
-  sun.shadow.camera.right = 1200;
-  sun.shadow.camera.top = 1200;
-  sun.shadow.camera.bottom = -1200;
+  sun.shadow.camera.left = -160;
+  sun.shadow.camera.right = 160;
+  sun.shadow.camera.top = 160;
+  sun.shadow.camera.bottom = -160;
   sun.shadow.camera.near = 10;
-  sun.shadow.camera.far = 1400;
-  sun.shadow.bias = -0.0004;
+  sun.shadow.camera.far = 900;
+  sun.shadow.bias = -0.00015;
+  sun.shadow.normalBias = 0.03;
+  sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   scene.add(sun.target);
 

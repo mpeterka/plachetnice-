@@ -35,8 +35,8 @@ export class SailMesh {
     // Realistická pracovní kosatka = ~80 % výšky forestay, kratší chodník (base).
     this.jibHeight = 7.0;
     this.jibBase = 2.0;
-    const jibHeadOffset = 2.45; // = jibHeight * 3.1/8.85
-    this.jibGeo = this._makeJibGeo(this.jibHeight, this.jibBase, jibHeadOffset, 8, 6);
+    this.jibHeadOffset = 2.45; // = jibHeight * 3.1/8.85
+    this.jibGeo = this._makeJibGeo(this.jibHeight, this.jibBase, this.jibHeadOffset, 8, 6);
     // Kosatka: krémová (béžová) — barevně jasně odlišená od hlavní
     const jibMat = new THREE.MeshStandardMaterial({
       color: 0xf5dc9a,
@@ -186,10 +186,12 @@ export class SailMesh {
     // Vyboulení plachty (perpenikulární na chord) – v lokálu ráhna je „výchylka v +X" odpovídá normálnímu směru.
     // Síla plachty vyboulí list ve směru kolmém k chord. Velikost úměrná CL+CD.
     const mainBulgeSign = Math.sign(mainAngle) || 1; // bulge na stejnou stranu jako rotated pivot (lokální +X)
-    const mainBulgeMag = Math.min(0.8, 0.3 + (mainInfo.CL + mainInfo.CD * 0.5));
+    const mainTension = sails.main.tension ?? 'normal';
+    const tensionBulge = mainTension === 'loose' ? 1.25 : mainTension === 'tight' ? 0.78 : 1;
+    const mainBulgeMag = Math.min(0.9, (0.3 + (mainInfo.CL + mainInfo.CD * 0.5)) * tensionBulge);
     const mainLuff = mainInfo.luffing || sails.main.reefFraction > 0.9 || !sails.main.hoisted;
     const mainScaleY = sails.main.hoisted ? (1 - sails.main.reefFraction * 0.66) : 0.02;
-    this._deformSail(this.mainGeo, this._mainOrigPositions, mainBulgeMag, mainBulgeSign, mainLuff, this._time, mainScaleY);
+    this._deformSail(this.mainGeo, this._mainOrigPositions, mainBulgeMag, mainBulgeSign, mainLuff, this._time, mainScaleY, false, 0, mainTension);
     this.mainMesh.visible = sails.main.hoisted && mainScaleY > 0.05;
 
     // --- Kosatka: forestay-luff zustava pevny, odklani se jen telo plachty ---
@@ -202,7 +204,7 @@ export class SailMesh {
     this.jibMesh.visible = sails.jib.hoisted && jibScale > 0.05;
   }
 
-  _deformSail(geo, origin, bulge, sign, luffing, time, vScale, isJib = false, sailAngle = 0) {
+  _deformSail(geo, origin, bulge, sign, luffing, time, vScale, isJib = false, sailAngle = 0, tension = 'normal') {
     const pos = geo.attributes.position.array;
     const uv = geo.attributes.uv.array;
     for (let i = 0; i < pos.length; i += 3) {
@@ -215,17 +217,21 @@ export class SailMesh {
       const par = Math.max(0, 4 * uvU * (1 - uvU)) * Math.max(0, 1 - uvV * 0.7);
       let x = sign * bulge * par;
       if (isJib) {
-        const sheetAngle = Math.min(Math.abs(sailAngle), Math.PI * 0.45);
+        const sheetAngle = Math.min(Math.abs(sailAngle), Math.PI * 0.42);
         const aftFromLuff = this.jibBase * uvU * Math.max(0, 1 - uvV);
-        x += sign * Math.tan(sheetAngle) * aftFromLuff;
+        x += sign * Math.sin(sheetAngle) * aftFromLuff;
+        const luffZ = -uvV * this.jibHeadOffset;
+        pos[i + 2] = luffZ - Math.cos(sheetAngle) * aftFromLuff;
+      } else {
+        pos[i + 2] = oz;
       }
       if (luffing) {
         // flapping: nelineární vlnění v X
-        x += 0.2 * (isJib ? uvU : 1) * Math.sin(time * 8 + uvU * 6) * Math.sin(time * 5 + uvV * 4);
+        const flutter = tension === 'loose' ? 1.45 : tension === 'tight' ? 0.55 : 1;
+        x += 0.2 * flutter * (isJib ? uvU : 1) * Math.sin(time * 8 + uvU * 6) * Math.sin(time * 5 + uvV * 4);
       }
       pos[i] = x;
       pos[i + 1] = oy * vScale; // ref/furl: měřítko po výšce (hlavní) / po hypotenuze (jib)
-      pos[i + 2] = oz;
     }
     geo.attributes.position.needsUpdate = true;
     geo.computeVertexNormals();
