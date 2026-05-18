@@ -11,11 +11,12 @@ import { computeHullDrag } from './physics/HullDrag.js';
 import { stepHeel } from './physics/Heel.js';
 import { stepLinear, stepYaw } from './physics/Integrator.js';
 import { Wind } from './wind/Wind.js';
-import { createScene } from './world/Scene.js';
+import { createScene, updateSunTarget } from './world/Scene.js';
 import { createSky } from './world/Sky.js';
 import { createWater } from './world/Water.js';
-import { createIslands } from './world/Islands.js';
-import { Rain } from './world/Rain.js';
+import { createLakeShore } from './world/LakeShore.js';
+import { applyLakeCollision } from './world/LakeBounds.js';
+import { Fleet } from './world/Fleet.js';
 import { Wake } from './world/Wake.js';
 import { createRenderer, setupResize } from './render/Renderer.js';
 import { ChaseCamera } from './render/Camera.js';
@@ -43,9 +44,9 @@ try {
 }
 
 try {
-  createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
+  createLakeShore(scene);
 } catch (err) {
-  console.warn('Islands init failed, continuing without islands.', err);
+  console.warn('Lake shore init failed, continuing without shore.', err);
 }
 
 // === State ===
@@ -90,17 +91,17 @@ try {
 }
 const chase = new ChaseCamera(boat, canvas);
 setupResize(renderer, chase.camera);
-let rain = null;
-try {
-  rain = new Rain(scene, chase.camera);
-} catch (err) {
-  console.warn('Rain init failed, continuing without rain effect.', err);
-}
 let wake = null;
 try {
   wake = new Wake(scene);
 } catch (err) {
   console.warn('Wake init failed, continuing without wake effect.', err);
+}
+let fleet = null;
+try {
+  fleet = new Fleet(scene);
+} catch (err) {
+  console.warn('Fleet init failed, continuing without nearby sailboats.', err);
 }
 const hud = new HUD(bus);
 
@@ -165,6 +166,7 @@ const loop = new GameLoop({
     const hull = computeHullDrag(boat);
     totalForce.copy(sailInfo.F).add(hull);
     stepLinear(boat, totalForce, dt);
+    applyLakeCollision(boat);
     stepYaw(boat, dt);
     stepHeel(boat, sailInfo.F_heel, effectiveCE(), dt);
     lastSailInfo = sailInfo;
@@ -174,10 +176,11 @@ const loop = new GameLoop({
       water.material.uniforms['time'].value += frameDelta;
     }
     boatMesh?.sync(boat);
+    updateSunTarget(sun, boat.position);
     if (lastSailInfo) sailMesh?.sync(sails, lastSailInfo, frameDelta);
     chase.update(frameDelta);
-    rain?.update(frameDelta, wind);
     wake?.update(frameDelta, boat);
+    fleet?.update(frameDelta);
     if (touchControls) touchControls.update();
     if (lastSailInfo) hud.update(boat, wind, sails, lastSailInfo, DIFFICULTY[currentDifficultyKey].name);
     renderer.render(scene, chase.camera);

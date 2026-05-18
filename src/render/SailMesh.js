@@ -23,6 +23,8 @@ export class SailMesh {
       vertexColors: true,
     });
     this.mainMesh = new THREE.Mesh(this.mainGeo, mainMat);
+    this.mainMesh.castShadow = true;
+    this.mainMesh.receiveShadow = true;
     // Připevníme k boomPivotu, tak že luff (přední lík) je u stěžně (z=0 v rámu boom pivot)
     // Geo: vertex 0 = boom-mast roh, šíří se po boomu (-Z) a po stěžni (+Y).
     this.anchors.boomPivot.add(this.mainMesh);
@@ -43,6 +45,8 @@ export class SailMesh {
       metalness: 0.0,
     });
     this.jibMesh = new THREE.Mesh(this.jibGeo, jibMat);
+    this.jibMesh.castShadow = true;
+    this.jibMesh.receiveShadow = true;
     // Kosatka visí mezi forestay (bowstayBase nahoru) a tackem na palubě
     this.jibPivot = new THREE.Group();
     this.jibPivot.position.set(0, this.anchors.deckTop, 3.6); // tack

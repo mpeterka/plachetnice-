@@ -14,7 +14,7 @@ export const BOAT = {
   hCE_main: 5.0,         // výška středu plachty hlavní (m)
   hCE_jib: 3.5,          // výška středu plachty kosatky (m)
   k_drag: 25,            // koeficient hull dragu (kvadratický)
-  k_lat: 600,            // boční rezistence (kýl)
+  k_lat: 1800,           // boční rezistence (kýl)
   k_rudder: 8,           // účinnost kormidla
   rudderArm: 4,          // vzdálenost kormidla od těžiště (m)
   yawDamping: 1.5,       // útlum rotace

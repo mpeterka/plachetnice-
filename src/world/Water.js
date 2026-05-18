@@ -91,6 +91,7 @@ export function createWater(sun) {
     size: 60.0,                 // tiling normály — vlnky o periodě ~1-2 m blízko lodi
   });
   water.rotation.x = -Math.PI / 2;
+  water.receiveShadow = true;
   if (sun) water.material.uniforms['sunDirection'].value.copy(sun.position).normalize();
   return water;
 }

@@ -37,6 +37,8 @@ function makeIsland(x, z, radius, heightScale, seed) {
   const mesh = new THREE.Mesh(geo, mat);
   // Základna mírně pod hladinu, ať voda obtéká
   mesh.position.set(x, -2, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   return mesh;
 }
 
@@ -52,6 +54,7 @@ function makeBeach(x, z, radius) {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set(x, 0.05, z);
+  mesh.receiveShadow = true;
   return mesh;
 }
 

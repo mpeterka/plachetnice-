@@ -183,6 +183,12 @@ export class BoatMesh {
 
     // Uložené hodnoty pro getRiggingAnchors (deckTop pro jib tack)
     this._deckTop = DECK_AT_BOW_STAY;
+
+    this.heelPivot.traverse((obj) => {
+      if (!obj.isMesh) return;
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    });
   }
 
   sync(boat) {
