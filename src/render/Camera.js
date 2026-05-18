@@ -17,7 +17,7 @@ export class ChaseCamera {
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.5, 5000);
 
     this.distance = 20;
-    this.yaw = 0;
+    this.yaw = Math.PI; // π = za krmou (startovní pohled shodný s původní kamerou)
     this.pitch = 0.32; // ~18° nad horizont
     this.lerpK = 4;
     this.shakeAmp = 0;
@@ -74,7 +74,9 @@ export class ChaseCamera {
       // Až teď zachytíme pointer — zbytek gesture jde do canvasu, i kdyby uživatel
       // přejel přes HUD overlay.
       try { canvas.setPointerCapture(e.pointerId); } catch {}
-      this.yaw -= dx * 0.005;
+      // Canvas je horizontálně zrcadlený, aby port/starboard odpovídaly HUD kompasu.
+      // Drag proto obracíme zpět, jinak by orbit reagoval proti pohybu prstu/myši.
+      this.yaw += dx * 0.005;
       this.pitch = THREE.MathUtils.clamp(this.pitch + dy * 0.005, PITCH_MIN, PITCH_MAX);
     });
 
@@ -88,15 +90,10 @@ export class ChaseCamera {
     canvas.addEventListener('pointerleave', release);
   }
 
-  // Sférická orbita kolem lodi. yaw=0 = za lodí, pitch=0 = horizont, pitch=π/2 = shora.
+  // Sférická orbita kolem lodi. yaw=0 = sever (world-space), pitch=0 = horizont.
   _updateDesired() {
-    const fwd = this.boat.forward();
-    const bx = -fwd.x;
-    const bz = -fwd.z;
-    const cy = Math.cos(this.yaw);
-    const sy = Math.sin(this.yaw);
-    const orbitX = bx * cy + bz * sy;
-    const orbitZ = -bx * sy + bz * cy;
+    const orbitX = Math.sin(this.yaw);
+    const orbitZ = Math.cos(this.yaw);
 
     const cp = Math.cos(this.pitch);
     const sp = Math.sin(this.pitch);

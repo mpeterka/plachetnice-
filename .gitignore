@@ -26,3 +26,4 @@ Desktop.ini
 *.log
 npm-debug.log*
 yarn-error.log*
+/.claude/settings.local.json

@@ -1,11 +1,11 @@
 import { BOAT, PHYSICS } from '../config.js';
 
 // 1-DOF rovnice náklonu kolem podélné osy lodi.
-// F_side > 0 (síla na pravobok = leeward při větru z levoboku) vytváří heeling moment,
+// F_heel > 0 (náklon na pravobok = leeward při větru z levoboku) vytváří heeling moment,
 // který naklání loď doprava (heel roste). Restoring moment přes metacentrickou výšku GM
 // loď vrací zpět, tlumení útlumí kmitání.
-export function stepHeel(boat, F_side, hCE, dt) {
-  const M_heel = F_side * hCE;
+export function stepHeel(boat, F_heel, hCE, dt) {
+  const M_heel = F_heel * hCE;
   const M_restore = -BOAT.mass * PHYSICS.GRAVITY * BOAT.GM * Math.sin(boat.heel);
   const M_damp = -BOAT.heelDamping * boat.angVelHeel;
 

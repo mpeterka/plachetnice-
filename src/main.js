@@ -40,6 +40,7 @@ try {
   scene.add(water);
 } catch (err) {
   console.warn('Water init failed, continuing without water mesh.', err);
+}
 
 try {
   createIslands(scene, { count: 28, innerR: 200, outerR: 2800 });
@@ -165,7 +166,7 @@ const loop = new GameLoop({
     totalForce.copy(sailInfo.F).add(hull);
     stepLinear(boat, totalForce, dt);
     stepYaw(boat, dt);
-    stepHeel(boat, sailInfo.F_side, effectiveCE(), dt);
+    stepHeel(boat, sailInfo.F_heel, effectiveCE(), dt);
     lastSailInfo = sailInfo;
   },
   render(frameDelta) {

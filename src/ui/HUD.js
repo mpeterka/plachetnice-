@@ -132,6 +132,7 @@ export class HUD {
         `|v|:  ${boat.velocity.length().toFixed(2)} m/s`,
         `F_fwd: ${sailInfo.F_forward.toFixed(0)} N`,
         `F_side:${sailInfo.F_side.toFixed(0)} N`,
+        `F_heel:${sailInfo.F_heel.toFixed(0)} N`,
         `heel:  ${heelDeg.toFixed(1)}°`,
         `main α:${(sailInfo.mainInfo.alpha * 180 / Math.PI).toFixed(1)}° CL:${sailInfo.mainInfo.CL.toFixed(2)} CD:${sailInfo.mainInfo.CD.toFixed(2)}`,
         `jib  α:${(sailInfo.jibInfo.alpha * 180 / Math.PI).toFixed(1)}° CL:${sailInfo.jibInfo.CL.toFixed(2)} CD:${sailInfo.jibInfo.CD.toFixed(2)}`,

@@ -46,14 +46,16 @@ export class Compass {
       'stroke-width': '0.5',
     }));
     // Štítek „NO-GO" malými písmeny v sektoru
-    this.svg.append(svgEl('text', {
+    const noGoLabel = svgEl('text', {
       x: 0, y: -70,
       fill: 'rgba(255,180,180,0.7)',
       'font-size': '8',
       'font-weight': '600',
       'text-anchor': 'middle',
       'letter-spacing': '1',
-    })).textContent = 'NO-GO';
+    });
+    noGoLabel.textContent = 'NO-GO';
+    this.svg.append(noGoLabel);
   }
 
   _buildBeamReachHints() {

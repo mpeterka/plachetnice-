@@ -19,6 +19,9 @@ html, body {
   height: 100vh;
   height: 100dvh;
   touch-action: none;
+  /* Chase kamera se dívá po +Z, zatímco WebGL kamera má forward -Z.
+     Bez zrcadlení je v pohledu za zádí pravobok vlevo na obrazovce. */
+  transform: scaleX(-1);
 }
 
 #hud {

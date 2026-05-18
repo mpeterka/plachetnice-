@@ -28,9 +28,13 @@ export class SailMesh {
     this.anchors.boomPivot.add(this.mainMesh);
 
     // === Kosatka ===
-    this.jibHeight = 6.0;
-    this.jibBase = 3.0;
-    this.jibGeo = this._makeJibGeo(this.jibHeight, this.jibBase, 8, 6);
+    // Forestay: od tacku (0, 1.04, 3.6) k hlavě stěžně (0, 9.89, 0.5) → dY=8.85, dZ=3.1
+    // Luff musí kopírovat sklon forestay: headOffset = jibHeight * (3.1/8.85) ≈ 0.35 * height.
+    // Realistická pracovní kosatka = ~80 % výšky forestay, kratší chodník (base).
+    this.jibHeight = 7.0;
+    this.jibBase = 2.0;
+    const jibHeadOffset = 2.45; // = jibHeight * 3.1/8.85
+    this.jibGeo = this._makeJibGeo(this.jibHeight, this.jibBase, jibHeadOffset, 8, 6);
     // Kosatka: krémová (béžová) — barevně jasně odlišená od hlavní
     const jibMat = new THREE.MeshStandardMaterial({
       color: 0xf5dc9a,
@@ -117,11 +121,9 @@ export class SailMesh {
     return geo;
   }
 
-  // Kosatka: trojúhelník s tackem (0,0,0), head (0,height,-zOff), clew (0,0,-base).
-  // Zatím rovinný trojúhelník v rovině X=0; deformace v sync.
-  _makeJibGeo(height, base, segH, segW) {
-    // Tack v (0,0,0), head v (0,height, -0.3*base), clew v (0, 0, -base).
-    const headOffset = 0.4 * base; // luff jde mírně dozadu (forestay sklon)
+  // Kosatka: trojúhelník s tackem (0,0,0), head (0,height,-headOffset), clew (0,0,-base).
+  // headOffset udává Z-posun hlavy (kopíruje sklon forestay).
+  _makeJibGeo(height, base, headOffset, segH, segW) {
     const positions = [];
     const uvs = [];
     const indices = [];
@@ -186,29 +188,36 @@ export class SailMesh {
     this._deformSail(this.mainGeo, this._mainOrigPositions, mainBulgeMag, mainBulgeSign, mainLuff, this._time, mainScaleY);
     this.mainMesh.visible = sails.main.hoisted && mainScaleY > 0.05;
 
-    // --- Kosatka: pivot rotace kolem osy Y (forestay je tack point) ---
-    this.jibPivot.rotation.y = -jibAngle;
+    // --- Kosatka: forestay-luff zustava pevny, odklani se jen telo plachty ---
+    this.jibPivot.rotation.y = 0;
     const jibBulgeSign = Math.sign(jibAngle) || 1;
     const jibBulgeMag = Math.min(0.7, 0.25 + (jibInfo.CL + jibInfo.CD * 0.5));
     const jibLuff = jibInfo.luffing || sails.jib.reefFraction > 0.9 || !sails.jib.hoisted;
     const jibScale = sails.jib.hoisted ? (1 - sails.jib.reefFraction) : 0.02;
-    this._deformSail(this.jibGeo, this._jibOrigPositions, jibBulgeMag, jibBulgeSign, jibLuff, this._time + 0.7, jibScale, true);
+    this._deformSail(this.jibGeo, this._jibOrigPositions, jibBulgeMag, jibBulgeSign, jibLuff, this._time + 0.7, jibScale, true, jibAngle);
     this.jibMesh.visible = sails.jib.hoisted && jibScale > 0.05;
   }
 
-  _deformSail(geo, origin, bulge, sign, luffing, time, vScale, isJib = false) {
+  _deformSail(geo, origin, bulge, sign, luffing, time, vScale, isJib = false, sailAngle = 0) {
     const pos = geo.attributes.position.array;
+    const uv = geo.attributes.uv.array;
     for (let i = 0; i < pos.length; i += 3) {
+      const vertex = i / 3;
       const oy = origin[i + 1];
       const oz = origin[i + 2];
       // Faktor parabolického vyboulení: maximum uprostřed plachty (kolem z = midZ)
-      const uvU = isJib ? Math.min(1, -oz / 3.6) : Math.min(1, -oz / 3.6);
-      const uvV = oy / (isJib ? 6.0 : 7.0);
+      const uvU = uv[vertex * 2];
+      const uvV = uv[vertex * 2 + 1];
       const par = Math.max(0, 4 * uvU * (1 - uvU)) * Math.max(0, 1 - uvV * 0.7);
       let x = sign * bulge * par;
+      if (isJib) {
+        const sheetAngle = Math.min(Math.abs(sailAngle), Math.PI * 0.45);
+        const aftFromLuff = this.jibBase * uvU * Math.max(0, 1 - uvV);
+        x += sign * Math.tan(sheetAngle) * aftFromLuff;
+      }
       if (luffing) {
         // flapping: nelineární vlnění v X
-        x += 0.2 * Math.sin(time * 8 + uvU * 6) * Math.sin(time * 5 + uvV * 4);
+        x += 0.2 * (isJib ? uvU : 1) * Math.sin(time * 8 + uvU * 6) * Math.sin(time * 5 + uvV * 4);
       }
       pos[i] = x;
       pos[i + 1] = oy * vScale; // ref/furl: měřítko po výšce (hlavní) / po hypotenuze (jib)

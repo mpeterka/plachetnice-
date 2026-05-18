@@ -61,8 +61,8 @@ function forceForSail(area, sailLocalAngle, boatHeading, apparent, aws, heelCos)
   const invAws = 1 / aws;
   const dx = apparent.x * invAws;
   const dz = apparent.z * invAws;
-  // Lift kolmo na drag (90° rotace v rovině XZ), znaménko podle alpha.
-  const liftSign = Math.sign(alpha) || 1;
+  // Lift kolmo na drag (90° rotace v rovině XZ), znaménko podle strany plachty.
+  const liftSign = Math.sign(sailLocalAngle) || 1;
   const lx = -dz * liftSign;
   const lz = dx * liftSign;
 
@@ -100,6 +100,8 @@ export function computeSailForces(boat, sails, trueWind) {
   const side = boat.side();
   const F_forward = F.dot(fwd);
   const F_side = F.dot(side);
+  const heelSign = -Math.sign(awa);
+  const F_heel = heelSign === 0 ? 0 : Math.abs(F_side) * heelSign;
 
-  return { F, F_forward, F_side, mainInfo, jibInfo, apparent, awa, aws, mainAngle, jibAngle };
+  return { F, F_forward, F_side, F_heel, mainInfo, jibInfo, apparent, awa, aws, mainAngle, jibAngle };
 }
